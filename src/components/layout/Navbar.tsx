@@ -83,11 +83,20 @@ export default function Navbar() {
 
   return (
     <>
+      {/* The bar is pinned to `top-0`, so its distance from the top edge is its
+          own top padding and nothing else: `pt-3` (12px) in both states, so the
+          wordmark and the menu button sit 12px under the status bar whether the
+          bar is transparent over the hero or filled on scroll. It has been
+          `1.6rem`, then `1.25rem`, and both read as too much top space on a
+          phone — the bar is an overlay, so this is the whole gap, not padding
+          inside a frame. The bottom padding stays `pb-4` / `pb-3`, which is what
+          leaves the content sitting slightly above the border; the bar measures
+          ~68px over the hero and ~64px once filled. */}
       <header
         className={`fixed inset-x-0 top-0 z-50 font-sans transition-all duration-300 ${
           scrolled
-            ? "border-b border-border bg-background/85 py-3 shadow-sm backdrop-blur-md"
-            : "border-b border-transparent bg-transparent py-5"
+            ? "border-b border-border bg-background/85 pt-3 pb-3 shadow-sm backdrop-blur-md"
+            : "border-b border-border bg-transparent pt-3 pb-4"
         }`}
       >
         <Container className="flex items-center justify-between">

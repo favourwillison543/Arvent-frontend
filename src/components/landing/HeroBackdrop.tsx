@@ -14,6 +14,14 @@ type Item = {
  * Faded, tilted invitation images behind the hero.
  * Put your images in /public/backdrop/ and set `src`, e.g. "/backdrop/wedding.jpg".
  * Empty `src` shows a soft colour placeholder.
+ *
+ * The fade is one number — `opacity-15` on the card in the map below. It was
+ * `opacity-35`, then `opacity-20`, and each step still left the pastels
+ * (fuchsia, violet, teal) reading as coloured blocks behind the headline rather
+ * than as a suggestion of paper. At 15% they are texture: identifiable if you
+ * look, quiet behind the type. Two overlays under the card list do the rest: a
+ * radial wash behind the headline and a bottom fade into the page. Raising or
+ * lowering the fade is that one class.
  */
 const items: Item[] = [
   {
@@ -99,7 +107,7 @@ export default function HeroBackdrop() {
           style={{ rotate: `${it.r}deg` }}
         >
           <div
-            className="float-in aspect-square overflow-hidden rounded-panel opacity-35 shadow-lg ring-1 ring-black/5"
+            className="float-in aspect-square overflow-hidden rounded-panel opacity-15 shadow-lg ring-1 ring-black/5"
             style={{ "--d": `${i * 0.12}s` } as CSSProperties}
           >
             {it.src ? (

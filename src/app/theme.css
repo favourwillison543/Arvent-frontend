@@ -478,10 +478,12 @@
   /* Directly on the tab bar, a thumb's width apart — not a full rail height.
      This was `+ 4.25rem`, which parked the tools 68px above the bar with a
      second bar-sized hole between them, and read as a different dock from the
-     invitation's RSVP bar (0.75rem). One gap for every floating bottom surface
-     now: `0.5rem` over the bar, `0.75rem` when the route has no bar. */
+     invitation's RSVP bar. The gap is `0.25rem` over the bar: the bar reserves
+     68px (`--bottom-nav-h`) but draws about 61px, so `0.5rem` here turned into a
+     ~15px hole between two surfaces that belong together. `0.75rem` stays the
+     rise for a route with no bar — see `--float-offset` / `pb-float`. */
   bottom: calc(
-    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.5rem
+    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.25rem
   );
   z-index: 40;
   display: flex;
@@ -493,7 +495,10 @@
   border-radius: var(--ev-r-md);
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  /* The rail floats a few pixels over its own bar and over the page, so a 50px
+     throw at 18% read as a second, heavier surface stacked on the content. A
+     tighter throw lifts it off the artwork without drawing a plate under it. */
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(18px);
 }
 
@@ -550,15 +555,16 @@
   .action-rail {
     left: auto;
     right: 0;
-    /* The rail used to sit at `top: 50%` with `translateY(-50%)`, i.e. centred
-       on the viewport: on a tall page that left a screenful of empty space
-       under it, floating mid-screen instead of resting at the foot of the
-       page. Anchoring it to the bottom edge puts it where the eye expects it,
-       just above the page's own bottom padding. */
-    top: auto;
-    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    /* Centred on the viewport. Anchoring the rail to `bottom` dropped it to the
+       foot of the page, where its last tool (Preview) ran off the bottom edge on
+       a laptop — the rail is the page's tool column, so it sits level with the
+       middle of the screen. `translateY(-50%)` centres the rail itself, not its
+       top edge, and there is no `bottom` alongside it, so the two anchors can
+       never disagree. */
+    top: 50%;
+    bottom: auto;
     width: 124px;
-    transform: none;
+    transform: translateY(-50%);
     flex-direction: column;
     justify-content: flex-start;
     gap: 0.25rem;

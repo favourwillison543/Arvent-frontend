@@ -26,7 +26,8 @@ export default function PageHeader({
   /** Buttons or chips, right of the title on desktop and under it on a phone. */
   actions?: ReactNode;
   /**
-   * `page` is the shared 90% column; `narrow` caps at 1024px for reading
+   * `page` is the shared column — full width on a phone, 95% from `sm` up;
+   * `narrow` caps at 1024px for reading
    * screens; `wide` is the organizer home's — the one the dashboard's card grid
    * uses, so the welcome title starts on the same x as the first card.
    */

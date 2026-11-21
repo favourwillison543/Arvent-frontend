@@ -232,6 +232,39 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   Scrollbars — no platform trough.
+   Chrome on Windows (every Chromium, actually) draws a grey track with arrow
+   buttons at the page's right edge and inside any scrolling panel. Over this
+   warm canvas it cut a hard vertical line down the page, and on `/create` it
+   ran through the artwork beside the floating rail. Both dials are turned off
+   here, once, for the whole product: `scrollbar-width` for Firefox,
+   `-ms-overflow-style` for legacy engines, and `::-webkit-scrollbar` for
+   Chromium and Safari.
+
+   This removes the *bar*, not the scrolling: wheel, trackpad, touch, keys and
+   dragging all still scroll, `scroll-behavior: smooth` still applies, and the
+   horizontal strips that already opt out per element (`[scrollbar-width:none]`)
+   are now only saying out loud what they get anyway.
+
+   The rule is unlayered on purpose: an unlayered declaration outranks every
+   `@layer`, so no Tailwind utility can paint a bar back on top of it. A surface
+   that genuinely needs a visible bar has to say so in an unlayered rule of its
+   own, the way `theme.css` sizes the `.ev-panel` track. The only utility that
+   used to ask for one was `Popover`'s `thin` list, which is now quietly
+   scrolled like everything else.
+   -------------------------------------------------------------------------- */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* --------------------------------------------------------------------------
    Organizer workspace tokens.
    Light-first: the values below are byte-for-byte the same palette the public
    landing and Moments pages read from `:root`, so a light dashboard, a light

@@ -7,14 +7,21 @@ import type { HTMLAttributes } from "react";
  * screen that needs a smaller measure gets the same gutters at a smaller cap
  * instead of hand-writing `px-4 sm:px-6`.
  */
-export const GUTTERS = "px-4 sm:px-6 lg:px-8";
+export const GUTTERS = "px-3 sm:px-6 lg:px-8";
 
 /**
- * The page column: a 90% width with the shared gutters. Marketing pages, the
- * organizer home, the event dashboard and the invitation all sit on it, so the
- * body doesn't shift sideways when the reader moves between screens.
+ * The page column: the shared gutters, capped at 95% from `sm` up. Marketing
+ * pages, the organizer home, the event dashboard and the invitation all sit on
+ * it, so the body doesn't shift sideways when the reader moves between screens.
+ *
+ * The cap starts at `sm` on purpose. On a phone `max-w-[95%]` takes 10px off
+ * each side of a 390px screen *on top of* the gutters, so the column was inset
+ * 21.75px — the navbar's wordmark and every page body read as indented rather
+ * than as airy. A phone is narrow enough that the gutter alone is the frame;
+ * from a tablet up, 5% of the viewport is real breathing room at the edge and
+ * the gutters sit inside it.
  */
-export const PAGE_BODY = `mx-auto w-full max-w-[90%] ${GUTTERS}`;
+export const PAGE_BODY = `mx-auto w-full sm:max-w-[95%] ${GUTTERS}`;
 
 /**
  * The event column — the one measure for every screen that shows an event.
