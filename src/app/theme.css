@@ -1,0 +1,1390 @@
+/* ==========================================================================
+   Arvent event theme system (all selectors are scoped under .ev / .evf).
+   Extracted verbatim from ThemeShell.tsx so the design tokens live in CSS:
+   diffable, cacheable, and free of React render work.
+   Loaded once from src/app/layout.tsx, after globals.css.
+   ========================================================================== */
+
+/* Theme foundation */
+.ev {
+  --ink: #f5f3ee;
+  --soft: rgba(245, 243, 238, .64);
+  --faint: rgba(245, 243, 238, .38);
+  --ev-surface: rgba(255, 255, 255, .07);
+  --ev-surface2: rgba(255, 255, 255, .14);
+  --line: rgba(255, 255, 255, .14);
+  /* Menus, plates and the action rail. Heavy enough that a control reads as a
+     surface on top of the theme's art; the blur does the rest. */
+  --panel: rgba(18, 18, 26, .94);
+  --inv: #14141f;
+  /* ---- Surface scale: the shared steps, never raw numbers. A form control's
+     corner is `radius-field` (12px) and a card's is `radius-panel` (16px), the
+     same two steps the workspace primitives use; the quick-pick tile keeps its
+     own tighter 8px. ---- */
+  --ev-r-xs: .5rem;
+  --ev-r-sm: var(--radius-field);
+  --ev-r-md: var(--radius-panel);
+  --ev-r-pill: 999px;
+  --ev-pad-tight: .4rem;
+  --ev-pad-sm: .5rem;
+  --ev-pad: .55rem;
+  --ev-pad-lg: .85rem;
+  --ev-pad-x: .9rem;
+  --ev-pad-x-sm: 1.1rem;
+  --ev-pad-x-lg: 1.6rem;
+  --ev-fs-xs: .7rem;
+  --ev-fs-sm: .8rem;
+  --ev-fs-md: .9rem;
+
+  position: relative;
+  color: var(--ink);
+  color-scheme: dark;
+  background: var(--background);
+}
+
+.ev[data-mode="light"] {
+  --ink: #29251f;
+  --soft: rgba(41, 37, 31, .68);
+  --faint: rgba(41, 37, 31, .42);
+  --ev-surface: rgba(255, 255, 255, .48);
+  --ev-surface2: rgba(255, 255, 255, .76);
+  --line: rgba(75, 57, 43, .12);
+  --panel: rgba(255, 253, 248, .94);
+  --inv: #fffdf8;
+
+  color-scheme: light;
+}
+
+/* The organizer dashboard reuses this shell, but its colours come from the
+   workspace tokens (light or dark, as the organizer chose) rather than from
+   the event's own palette. */
+.ev.workspace-theme {
+  color-scheme: inherit;
+  --ink: var(--foreground);
+  --soft: var(--muted-foreground);
+  --faint: color-mix(in srgb, var(--muted-foreground) 60%, transparent);
+  --ev-surface: var(--surface);
+  --ev-surface2: var(--muted);
+  --line: var(--border);
+  --panel: var(--surface);
+  --inv: var(--background);
+}
+
+/* Elevation follows the workspace appearance, not the event theme. */
+.ev.workspace-theme .ev-panel,
+.ev.workspace-theme .action-rail {
+  box-shadow: 0 18px 44px rgb(24 24 27 / 10%);
+}
+
+[data-appearance="dark"] .ev.workspace-theme .ev-panel,
+[data-appearance="dark"] .ev.workspace-theme .action-rail {
+  box-shadow: 0 20px 50px rgb(0 0 0 / 45%);
+}
+
+.ev:not(.workspace-theme) {
+  --foreground: var(--ink);
+  --muted-foreground: var(--soft);
+  --border: var(--line);
+  /* `bg-background` plates (menus, form rows, the memories bar) are surfaces on
+     the themed canvas, not the page behind it — the page comes from the inline
+     theme style on the shell. */
+  --background: var(--panel);
+  --surface: var(--ev-surface);
+  --muted: var(--ev-surface2);
+  --destructive-ink: #b42318;
+}
+
+/* Dark themes need the lifted destructive tone the dark workspace uses; the
+   light value is unreadable on a near-black canvas. */
+.ev[data-mode="dark"]:not(.workspace-theme) {
+  --destructive-ink: #fda4af;
+}
+
+/* The organizer's screens for one event (`/events/[id]`, its tabs and the door)
+   paint the event canvas — the same one the invitation paints — but they carry
+   dense UI: guest rows, pagers, menus. Their plates are the invitation's
+   `--panel` glass instead of the 7%-white card wash, so long lists stay legible
+   on top of the theme's art. */
+/* The organizer's own copy of the event canvas — the same palette, art and
+   effect the invitation paints — but dimmed by half, so the decoration never
+   competes with guest rows, menus and numbers. `--inv` is the inverse ink for
+   the theme's own light/dark mode, so one declaration halves both. */
+.ev:not(.workspace-theme) .ev-dash {
+  /* Plates are glass instead of the near-black panel: a card on this canvas is
+     a light wash over the theme, the way every other card in the app reads. */
+  --surface: var(--ev-surface2);
+  background: color-mix(in srgb, var(--inv) 46%, transparent);
+}
+  
+/* Background atmosphere: independent of selectable effects */
+.ev-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 7% 9%,
+      rgba(242, 177, 145, .25) 0%,
+      rgba(242, 177, 145, .10) 23%,
+      transparent 47%
+    ),
+    radial-gradient(
+      ellipse at 94% 19%,
+      rgba(238, 207, 145, .24) 0%,
+      rgba(238, 207, 145, .09) 25%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 77% 86%,
+      rgba(206, 181, 222, .20) 0%,
+      rgba(206, 181, 222, .07) 25%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 17% 91%,
+      rgba(235, 192, 177, .15) 0%,
+      transparent 40%
+    );
+}
+
+/* Light mode: warm cream, peach, blush and butter */
+.ev[data-mode="light"] .ev-atmosphere {
+  background:
+    radial-gradient(
+      ellipse at 0% 0%,
+      rgba(247, 198, 171, .36) 0%,
+      rgba(247, 198, 171, .14) 25%,
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse at 100% 8%,
+      rgba(245, 221, 157, .35) 0%,
+      rgba(245, 221, 157, .12) 27%,
+      transparent 53%
+    ),
+    radial-gradient(
+      ellipse at 88% 72%,
+      rgba(218, 195, 229, .28) 0%,
+      rgba(218, 195, 229, .10) 25%,
+      transparent 51%
+    ),
+    radial-gradient(
+      ellipse at 5% 94%,
+      rgba(245, 202, 186, .25) 0%,
+      transparent 43%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 252, 244, .30),
+      rgba(255, 248, 237, .08) 48%,
+      rgba(249, 242, 250, .20)
+    );
+}
+
+/* Dark mode: deep charcoal, plum and warm undertones */
+.ev[data-mode="dark"] .ev-atmosphere {
+  background:
+    radial-gradient(
+      ellipse at 5% 5%,
+      rgba(151, 93, 119, .19) 0%,
+      rgba(151, 93, 119, .07) 28%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 95% 16%,
+      rgba(174, 133, 86, .15) 0%,
+      rgba(174, 133, 86, .05) 26%,
+      transparent 51%
+    ),
+    radial-gradient(
+      ellipse at 82% 90%,
+      rgba(105, 82, 143, .19) 0%,
+      rgba(105, 82, 143, .06) 28%,
+      transparent 54%
+    ),
+    radial-gradient(
+      ellipse at 10% 80%,
+      rgba(104, 104, 67, .10) 0%,
+      transparent 44%
+    );
+}
+
+/* Keep the workspace background unchanged */
+.ev.workspace-theme .ev-atmosphere {
+  display: none;
+}
+
+/* Surfaces and form elements */
+.ev-muted {
+  color: var(--soft);
+}
+
+.ev-faint {
+  color: var(--faint);
+}
+
+.ev-card {
+  border: 1px solid var(--line);
+  background: var(--ev-surface);
+  border-radius: var(--ev-r-sm);
+  backdrop-filter: blur(10px);
+}
+
+.ev-card[data-on="true"] {
+  border-color: var(--ink);
+}
+
+/* ---- Date and venue tiles ------------------------------------------------
+   Two tiles with art behind them (contour circles for the date, a street map
+   for the venue). The ink is the theme's own (`--ink`), so text is near-black
+   on a light invitation and off-white on a dark one.
+
+   `.ev-accent` is the one filled shape in a tile (the month band and the pin
+   square). It takes the theme ink as its fill and `--inv` for the text or icon
+   on top, so it is black with white text on light invitations and white with
+   dark text on dark ones. No brand colour is used. */
+   .ev-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    overflow: hidden;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--ev-r-md);
+    background: var(--ev-surface);
+    color: var(--ink);
+    backdrop-filter: blur(10px);
+  }
+  
+  .ev-accent {
+    background: var(--ink);
+    color: var(--inv);
+  }
+
+.ev-tile-mark[data-brand="true"] {
+  background: var(--brand);
+  color: var(--brand-foreground);
+}
+
+.ev-panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--ev-r-md);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .15);
+}
+
+.ev[data-mode="light"] .ev-panel {
+  box-shadow: 0 20px 50px rgba(99, 72, 48, .07);
+}
+
+.ev-input {
+  background: transparent;
+  outline: none;
+  font-size: var(--ev-fs-md);
+  color: var(--ink);
+  min-width: 0;
+  min-height: 2.75rem;
+}
+
+.ev-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.ev-input::placeholder {
+  color: var(--faint);
+}
+
+/* Native date and time fields draw their own glyphs. At full strength they read
+   as browser chrome in the middle of a designed row — "dd/mm/yyyy" plus three
+   little icons — so they are turned down to a hint of affordance. */
+.ev input[type="date"]::-webkit-calendar-picker-indicator,
+.ev input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: .55;
+  transition: opacity .2s;
+}
+
+.ev input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.ev input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Chrome pads the date's internal field segments; the row already sets the
+   gutter, so the padding is removed rather than doubled. */
+.ev input[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+/* ---- The reply card ------------------------------------------------------
+   An RSVP is a card a guest writes on, not a form they fill in. So the fields
+   are writing lines — a rule under the hand, no box, no fill — and the labels
+   are small caps above them. The same two classes dress the "Remind me" dialog,
+   because the two questions arrive side by side on the invitation. */
+.ev-field {
+  width: 100%;
+  min-width: 0;
+  padding: .5rem .1rem .45rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--ev-fs-md);
+  transition: border-color .18s ease;
+}
+
+.ev-field::placeholder {
+  color: var(--faint);
+}
+
+.ev-field:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+
+/* Keyboard focus still needs a visible ring; only the pointer focus is quiet. */
+.ev-field:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.ev-field-label {
+  display: block;
+  margin-bottom: .15rem;
+  color: var(--faint);
+  font-size: var(--ev-fs-xs);
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+
+/* A hairline with a diamond in it: the break between answers on a card. */
+.ev-ornament {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  color: var(--faint);
+}
+
+.ev-ornament::before,
+.ev-ornament::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.ev-ornament-glyph {
+  font-size: .6rem;
+  line-height: 1;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+}
+
+.ev-chip {
+  border: 1px solid var(--line);
+  background: var(--ev-surface);
+  color: var(--soft);
+  border-radius: var(--ev-r-pill);
+  padding: var(--ev-pad-tight) var(--ev-pad-x);
+  font-size: var(--ev-fs-sm);
+  font-weight: 600;
+  transition: background .2s, color .2s;
+}
+
+.ev-chip:hover {
+  color: var(--ink);
+}
+
+.ev-chip[data-on="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--inv);
+}
+
+.ev-sq {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--ev-r-xs);
+}
+
+.ev-switch {
+  background: var(--line);
+}
+
+.ev-knob {
+  background: var(--ink);
+}
+
+.ev-switch[aria-checked="true"] {
+  background: var(--ink);
+}
+
+.ev-switch[aria-checked="true"] .ev-knob {
+  background: var(--inv);
+}
+
+/* The switch itself is now a 44px button and the track is a span inside it, so
+   the checked state rides on `data-checked`: the element that can be tapped and
+   the element that shows the state are no longer the same box. */
+.ev-switch[data-checked="true"] {
+  background: var(--ink);
+}
+
+.ev-switch[data-checked="true"] .ev-knob {
+  background: var(--inv);
+}
+
+.ev-sel[data-on="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.ev-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  padding: var(--ev-pad) var(--ev-pad-x);
+  border-radius: var(--ev-r-sm);
+  font-size: var(--ev-fs-xs);
+  font-weight: 600;
+  color: var(--soft);
+  transition: background .2s, color .2s;
+}
+
+.ev-rail:hover,
+.ev-rail[data-on="true"] {
+  background: var(--ev-surface2);
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------------------
+   Action rail — one container for every fixed tool set.
+   Floating bar under the content on phones, right-edge rail from lg up.
+   -------------------------------------------------------------------------- */
+
+.action-rail {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  /* Directly on the tab bar, a thumb's width apart — not a full rail height.
+     This was `+ 4.25rem`, which parked the tools 68px above the bar with a
+     second bar-sized hole between them, and read as a different dock from the
+     invitation's RSVP bar (0.75rem). One gap for every floating bottom surface
+     now: `0.5rem` over the bar, `0.75rem` when the route has no bar. */
+  bottom: calc(
+    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.5rem
+  );
+  z-index: 40;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.125rem;
+  padding: 0.375rem 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--ev-r-md);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+/* Six tools have to fit a 360px phone. Each one is an icon with one short line
+   under it: never a wrapping label, never a shrunken grid of letters. */
+.action-rail .ev-rail {
+  flex: 1 1 0;
+  min-width: 3rem;
+  padding: 0.35rem 0.15rem;
+  justify-content: center;
+  gap: 0.15rem;
+  /* A tool's name is read at a glance, not squinted at: `--soft` is the tone for
+     body copy, this is one step louder. */
+  color: color-mix(in srgb, var(--ink) 80%, transparent);
+  font-size: 0.6rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  hyphens: none;
+  word-break: keep-all;
+}
+
+.action-rail-icon {
+  display: flex;
+  height: 1.6rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-rail-figure {
+  display: grid;
+  min-width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: var(--ev-r-pill);
+  background: var(--ink);
+  color: var(--inv);
+  line-height: 1.05;
+  text-align: center;
+}
+
+.action-rail-figure b {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.action-rail-figure span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+@media (min-width: 1024px) {
+  .action-rail {
+    left: auto;
+    right: 0;
+    /* The rail used to sit at `top: 50%` with `translateY(-50%)`, i.e. centred
+       on the viewport: on a tall page that left a screenful of empty space
+       under it, floating mid-screen instead of resting at the foot of the
+       page. Anchoring it to the bottom edge puts it where the eye expects it,
+       just above the page's own bottom padding. */
+    top: auto;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    width: 124px;
+    transform: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    border-right: 0;
+    border-radius: var(--ev-r-md) 0 0 var(--ev-r-md);
+  }
+
+  /* The phone rail whispers at 9.6px so six labels fit 360px. On the desktop
+     rail there is room for a label you can actually read, one tool per ~100px
+     block, which is the rail Partiful's create screen has. */
+  .action-rail .ev-rail {
+    width: 100%;
+    height: 104px;
+    flex: none;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .action-rail-icon {
+    height: 1.9rem;
+  }
+}
+
+.ev-cta {
+  background: var(--brand);
+  color: var(--brand-foreground);
+  font-weight: 700;
+  border-radius: var(--ev-r-pill);
+  padding: var(--ev-pad-lg) var(--ev-pad-x-lg);
+  font-size: var(--ev-fs-md);
+  transition: transform .25s;
+}
+
+.ev-cta:hover {
+  transform: translateY(-2px);
+}
+
+.ev-ghost {
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+  border-radius: var(--ev-r-pill);
+  padding: var(--ev-pad-lg) var(--ev-pad-x-lg);
+  font-size: var(--ev-fs-md);
+}
+
+.ev-sm {
+  padding: var(--ev-pad-sm) var(--ev-pad-x-sm);
+  font-size: var(--ev-fs-sm);
+}
+
+/* Existing effect animations: preserved */
+@keyframes ev-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -24px); }
+}
+
+@keyframes ev-twinkle {
+  0%, 100% { opacity: .1; }
+  50% { opacity: .7; }
+}
+
+@keyframes ev-fall {
+  from { transform: translateY(-6vh) rotate(0); }
+  to { transform: translateY(112vh) rotate(540deg); }
+}
+
+.ev-orb {
+  animation: ev-float 14s ease-in-out infinite;
+}
+
+.ev-orb2 {
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+.ev-twinkle {
+  animation: ev-twinkle 3.2s ease-in-out infinite;
+}
+
+.ev-fall {
+  animation: ev-fall 9s linear infinite;
+  opacity: .8;
+}
+
+.ev-circle {
+  border: 1px solid var(--line);
+  background: radial-gradient(
+    circle at 30% 20%,
+    var(--ev-surface2),
+    var(--ev-surface)
+  );
+  backdrop-filter: blur(8px);
+}
+
+.ev-p {
+  position: absolute;
+  opacity: .85;
+  will-change: transform;
+}
+
+.ev-p-fall {
+  top: -8vh;
+  animation: evp-fall linear infinite;
+}
+
+.ev-p-rise {
+  top: 100%;
+  animation: evp-rise linear infinite;
+}
+
+.ev-p-float {
+  animation: evp-float ease-in-out infinite alternate;
+}
+
+@keyframes evp-fall {
+  from { transform: translate(0, 0) rotate(0); }
+  to { transform: translate(30px, 118vh) rotate(360deg); }
+}
+
+@keyframes evp-rise {
+  from { transform: translate(0, 0) rotate(-10deg); }
+  to { transform: translate(-30px, -118vh) rotate(10deg); }
+}
+
+@keyframes evp-float {
+  from { transform: translate(-4vw, 0) rotate(-8deg); }
+  to { transform: translate(4vw, -24px) rotate(8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-orb,
+  .ev-twinkle,
+  .ev-fall,
+  .ev-p {
+    animation: none;
+  }
+}
+
+/* Ambient motion: slow glows behind everything, quiet by design */
+.ev-amb {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+.ev-amb-1 {
+  width: 60vmax;
+  height: 60vmax;
+  left: -18vmax;
+  top: -22vmax;
+  background: radial-gradient(closest-side, var(--a1), transparent);
+  animation: amb-a 34s ease-in-out infinite alternate;
+}
+
+.ev-amb-2 {
+  width: 55vmax;
+  height: 55vmax;
+  right: -20vmax;
+  top: 18%;
+  background: radial-gradient(closest-side, var(--a2), transparent);
+  animation: amb-b 42s ease-in-out infinite alternate;
+}
+
+.ev-amb-3 {
+  width: 65vmax;
+  height: 65vmax;
+  left: 12%;
+  bottom: -34vmax;
+  background: radial-gradient(closest-side, var(--a3), transparent);
+  animation: amb-c 48s ease-in-out infinite alternate;
+}
+
+.ev[data-mode="dark"] .ev-amb {
+  mix-blend-mode: screen;
+}
+
+@keyframes amb-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(16vmax, 12vmax) scale(1.18); }
+}
+
+@keyframes amb-b {
+  from { transform: translate(0, 0) scale(1.05); }
+  to { transform: translate(-14vmax, -10vmax) scale(.9); }
+}
+
+@keyframes amb-c {
+  from { transform: translate(0, 0) scale(.95); }
+  to { transform: translate(-12vmax, -14vmax) scale(1.15); }
+}
+
+/* Smoke: slower, lifts upward */
+.ev-amb-smoke .ev-amb-1 { animation: amb-smoke 46s ease-in-out infinite alternate; }
+.ev-amb-smoke .ev-amb-2 { animation: amb-smoke 58s ease-in-out infinite alternate-reverse; }
+.ev-amb-smoke .ev-amb-3 { animation: amb-smoke 52s ease-in-out infinite alternate; }
+
+@keyframes amb-smoke {
+  from { transform: translate(0, 4vmax) scale(1); opacity: .7; }
+  to { transform: translate(6vmax, -16vmax) scale(1.25); opacity: 1; }
+}
+
+/* Fire: the glow along the bottom flickers */
+.ev-amb-fire .ev-amb-1 { animation-duration: 22s; }
+.ev-amb-fire .ev-amb-2 { animation-duration: 26s; }
+.ev-amb-fire .ev-amb-3 {
+  bottom: -40vmax;
+  animation: amb-flicker 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes amb-flicker {
+  0% { transform: translate(0, 0) scale(1); opacity: .75; }
+  25% { transform: translate(-2vmax, -2vmax) scale(1.06); opacity: 1; }
+  55% { transform: translate(1vmax, -1vmax) scale(1.02); opacity: .7; }
+  100% { transform: translate(3vmax, -4vmax) scale(1.12); opacity: .95; }
+}
+
+/* Aurora and sea: a little quicker, they should feel like they flow */
+.ev-amb-aurora .ev-amb-1 { animation-duration: 24s; }
+.ev-amb-aurora .ev-amb-2 { animation-duration: 29s; }
+.ev-amb-aurora .ev-amb-3 { animation-duration: 33s; }
+.ev-amb-sea .ev-amb-1 { animation-duration: 28s; }
+.ev-amb-sea .ev-amb-2 { animation-duration: 32s; }
+
+/* Effects v2: depth, sway and tumble */
+.evx {
+  position: absolute;
+  left: 0;
+  will-change: transform, opacity;
+}
+
+.evx-fall {
+  top: -14vh;
+  animation: evx-fall linear infinite;
+}
+
+.evx-rise {
+  top: 100%;
+  animation: evx-rise linear infinite;
+}
+
+.evx-drift {
+  animation: evx-drift ease-in-out infinite alternate;
+}
+
+.evx-twinkle {
+  animation: evx-twinkle ease-in-out infinite;
+}
+
+.evx-in {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: evx-sway ease-in-out infinite alternate;
+}
+
+@keyframes evx-fall {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, 128vh, 0); }
+}
+
+@keyframes evx-rise {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -128vh, 0); }
+}
+
+@keyframes evx-sway {
+  from { transform: translateX(calc(var(--sway, 20px) * -1)) rotate(calc(var(--rot, 12deg) * -1)); }
+  to { transform: translateX(var(--sway, 20px)) rotate(var(--rot, 12deg)); }
+}
+
+@keyframes evx-drift {
+  from { transform: translate3d(-5vw, 0, 0); }
+  to { transform: translate3d(5vw, -28px, 0); }
+}
+
+@keyframes evx-twinkle {
+  0%, 100% { opacity: .1; transform: scale(.55) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.1) rotate(25deg); }
+}
+
+/* Light beams */
+.evb {
+  position: absolute;
+  filter: blur(16px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  animation: evb-sway ease-in-out infinite alternate;
+}
+
+.ev[data-mode="light"] .evb {
+  mix-blend-mode: normal;
+}
+
+.evb-cone {
+  position: absolute;
+  inset: 0;
+}
+
+.evb-haze {
+  background-size: 200% 100%;
+  animation: evb-haze 16s linear infinite;
+}
+
+@keyframes evb-sway {
+  from { transform: rotate(calc(var(--a) - var(--s))); opacity: .72; }
+  to { transform: rotate(calc(var(--a) + var(--s))); opacity: 1; }
+}
+
+@keyframes evb-haze {
+  from { background-position: 0 0; }
+  to { background-position: 100% 0; }
+}
+
+/* Fireworks */
+.evx-fw {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.evx-fw i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 10px 2px var(--c);
+  opacity: 0;
+  animation: evx-burst 3.6s cubic-bezier(.15, .7, .3, 1) infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes evx-burst {
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(0) scale(.5); }
+  6% { opacity: 1; }
+  62% { opacity: 1; transform: rotate(var(--a)) translateX(var(--d)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(calc(var(--d) * 1.18)) scale(.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-amb,
+  .evx,
+  .evx-in,
+  .evx-fw i,
+  .evb,
+  .evb-haze {
+    animation: none;
+  }
+}
+
+/* Refined effects: soft light, dust, embers, lanterns, glitter, silk and aurora.
+   All of them are slow and low-contrast on purpose: they should feel like the
+   room's lighting, not like decoration. */
+.evx-bokeh {
+  animation: evx-bokeh-drift ease-in-out infinite alternate;
+}
+
+.evx-dust {
+  animation: evx-dust-rise linear infinite;
+}
+
+.evx-ember {
+  animation: evx-ember-rise linear infinite;
+}
+
+.evx-lantern {
+  animation: evx-lantern-rise linear infinite;
+}
+
+.evx-glitter {
+  animation: evx-glitter-flash ease-in-out infinite;
+}
+
+.evx-silk {
+  animation: evx-silk-fall linear infinite;
+}
+
+.evx-aurora {
+  position: absolute;
+  left: -12%;
+  height: 34vh;
+  border-radius: 50%;
+  filter: blur(46px);
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation: evx-aurora-flow ease-in-out infinite alternate;
+}
+
+.ev[data-mode="light"] .evx-aurora {
+  mix-blend-mode: normal;
+  opacity: .7;
+}
+
+@keyframes evx-bokeh-drift {
+  from { transform: translate3d(calc(var(--sway, 24px) * -1), 0, 0) scale(.9); }
+  to { transform: translate3d(var(--sway, 24px), -6vh, 0) scale(1.06); }
+}
+
+@keyframes evx-dust-rise {
+  0% { transform: translate3d(0, 14vh, 0); opacity: 0; }
+  12% { opacity: .9; }
+  86% { opacity: .8; }
+  100% { transform: translate3d(var(--sway, 24px), -112vh, 0); opacity: 0; }
+}
+
+@keyframes evx-ember-rise {
+  0% { transform: translate3d(0, 8vh, 0) scale(.85); opacity: 0; }
+  10% { opacity: .95; }
+  32% { opacity: .5; }
+  54% { opacity: .95; }
+  74% { opacity: .55; }
+  90% { opacity: .85; }
+  100% { transform: translate3d(var(--sway, 30px), -108vh, 0) scale(1.08); opacity: 0; }
+}
+
+@keyframes evx-lantern-rise {
+  0% { transform: translate3d(0, 12vh, 0) rotate(-2.5deg); opacity: 0; }
+  9% { opacity: .9; }
+  50% { transform: translate3d(calc(var(--sway, 30px) * .6), -46vh, 0) rotate(2.5deg); }
+  92% { opacity: .75; }
+  100% { transform: translate3d(var(--sway, 30px), -112vh, 0) rotate(-1.5deg); opacity: 0; }
+}
+
+@keyframes evx-glitter-flash {
+  0%, 100% { opacity: 0; transform: scale(.45) rotate(0deg); }
+  45% { opacity: 1; transform: scale(1) rotate(18deg); }
+  62% { opacity: .6; transform: scale(.82) rotate(26deg); }
+}
+
+@keyframes evx-silk-fall {
+  0% { transform: translate3d(0, -18vh, 0) rotate(-5deg); opacity: 0; }
+  14% { opacity: .5; }
+  86% { opacity: .4; }
+  100% { transform: translate3d(var(--sway, 26px), 118vh, 0) rotate(5deg); opacity: 0; }
+}
+
+@keyframes evx-aurora-flow {
+  from { transform: translate3d(-9%, 2vh, 0) skewY(-4deg) scaleY(.9); }
+  to { transform: translate3d(9%, -3vh, 0) skewY(4deg) scaleY(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evx-bokeh,
+  .evx-dust,
+  .evx-ember,
+  .evx-lantern,
+  .evx-glitter,
+  .evx-silk,
+  .evx-aurora {
+    animation: none;
+  }
+}
+
+/* Scenes */
+.evs-smoke {
+  position: absolute;
+  bottom: -35vh;
+  height: 115vh;
+  border-radius: var(--ev-r-pill);
+  background: linear-gradient(
+    to top,
+    transparent,
+    rgba(255, 255, 255, .13) 35%,
+    rgba(255, 255, 255, .07) 65%,
+    transparent
+  );
+  filter: blur(16px);
+  opacity: 0;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+  animation: evs-smoke linear infinite;
+}
+
+@keyframes evs-smoke {
+  0% { opacity: 0; transform: translateX(0) scale(.8, .9); }
+  20% { opacity: 1; }
+  70% { opacity: .9; transform: translateX(var(--sx, 4vw)) scale(1.3, 1.05); }
+  100% { opacity: 0; transform: translateX(calc(var(--sx, 4vw) * -.7)) translateY(-14vh) scale(1.7, 1.15); }
+}
+
+.evs-web {
+  color: rgba(255, 255, 255, .3);
+  transform-origin: top left;
+  animation: evs-websway 9s ease-in-out infinite alternate;
+}
+
+@keyframes evs-websway {
+  from { transform: rotate(-.8deg); }
+  to { transform: rotate(.8deg); }
+}
+
+.evs-flame {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+.evs-flame-1 { height: 40vh; animation: evs-flicker 3.2s ease-in-out infinite alternate; }
+.evs-flame-2 { height: 32vh; animation: evs-flicker 2.4s ease-in-out infinite alternate-reverse; }
+.evs-flame-3 { height: 22vh; animation: evs-flicker 1.8s ease-in-out infinite alternate; }
+
+@keyframes evs-flicker {
+  0% { transform: scaleY(.9) skewX(-1.5deg); }
+  50% { transform: scaleY(1.08) skewX(1deg); }
+  100% { transform: scaleY(.96) skewX(2deg); }
+}
+
+.evs-ember {
+  position: absolute;
+  bottom: -2vh;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 8px 2px rgba(255, 140, 40, .8);
+  opacity: 0;
+  animation: evs-ember linear infinite;
+}
+
+@keyframes evs-ember {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--ex, 20px), -70vh) scale(.3); }
+}
+
+.evs-aur {
+  position: absolute;
+  left: 0;
+  filter: blur(7px);
+  animation: evs-breathe 9s ease-in-out infinite alternate;
+}
+
+.evs-aur svg {
+  display: block;
+  width: 200vw;
+  height: 100%;
+}
+
+.evs-scroll {
+  animation: evs-scroll linear infinite;
+  will-change: transform;
+}
+
+@keyframes evs-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes evs-breathe {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+
+.evs-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: evs-tw ease-in-out infinite;
+}
+
+@keyframes evs-tw {
+  0%, 100% { opacity: .15; transform: scale(.7); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.evs-shoot {
+  position: absolute;
+  width: 120px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff, rgba(255, 255, 255, 0));
+  opacity: 0;
+  transform: rotate(-32deg);
+  animation: evs-shoot 11s linear infinite;
+}
+
+@keyframes evs-shoot {
+  0%, 72% { opacity: 0; transform: translate(0, 0) rotate(-32deg); }
+  74% { opacity: 1; }
+  82% { opacity: 0; transform: translate(-38vw, 24vw) rotate(-32deg); }
+  100% { opacity: 0; transform: translate(-38vw, 24vw) rotate(-32deg); }
+}
+
+.evs-cloud {
+  position: absolute;
+  left: 0;
+  animation: evs-cloudmove linear infinite;
+  will-change: transform;
+}
+
+@keyframes evs-cloudmove {
+  from { transform: translateX(-35vw); }
+  to { transform: translateX(135vw); }
+}
+
+.evs-rays {
+  position: absolute;
+  width: 220vmax;
+  height: 220vmax;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, .38) 0 5deg,
+    transparent 5deg 13deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, #000 0, transparent 70%);
+  mask-image: radial-gradient(closest-side, #000 0, transparent 70%);
+  animation: evs-spin 180s linear infinite;
+}
+
+@keyframes evs-spin {
+  to { transform: rotate(360deg); }
+}
+
+.evs-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, .5) 47%,
+    rgba(255, 255, 255, .15) 53%,
+    transparent 65%
+  );
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  animation: evs-sheen 9s ease-in-out infinite;
+}
+
+@keyframes evs-sheen {
+  0%, 15% { background-position: 130% 0; }
+  70%, 100% { background-position: -30% 0; }
+}
+
+.evs-grass {
+  position: absolute;
+  inset: 0;
+  background-size: 144px 144px;
+  image-rendering: pixelated;
+  animation: evs-grass 1.6s steps(1) infinite;
+}
+
+@keyframes evs-grass {
+  0% { background-position: 0 0; }
+  50% { background-position: 6px 0; }
+}
+
+.evs-shadow {
+  position: absolute;
+  left: 0;
+  background: rgba(40, 110, 50, .16);
+  clip-path: polygon(0 40%, 10% 40%, 10% 20%, 30% 20%, 30% 0, 70% 0, 70% 20%, 90% 20%, 90% 40%, 100% 40%, 100% 80%, 85% 80%, 85% 100%, 15% 100%, 15% 80%, 0 80%);
+  animation: evs-shadow steps(80) infinite;
+}
+
+@keyframes evs-shadow {
+  from { transform: translateX(-30vw); }
+  to { transform: translateX(130vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evs-smoke { animation: none; opacity: .6; }
+  .evs-web,
+  .evs-flame,
+  .evs-aur,
+  .evs-scroll,
+  .evs-star,
+  .evs-shoot,
+  .evs-cloud,
+  .evs-rays,
+  .evs-sheen,
+  .evs-grass,
+  .evs-shadow,
+  .evs-ember {
+    animation: none;
+  }
+}
+
+/* Invitation font options */
+.evf-fraunces {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+}
+
+.evf-playfair {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+}
+
+.evf-pacifico {
+  font-family: 'Pacifico', cursive;
+  font-weight: 400;
+}
+
+.evf-caveat {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+}
+
+.evf-orbitron {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+}
+
+.evf-bebas {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: .02em;
+}
+
+.evf-shrikhand {
+  font-family: 'Shrikhand', cursive;
+  font-weight: 400;
+}
+
+.evf-bowlby {
+  font-family: 'Bowlby One', sans-serif;
+  font-weight: 400;
+}
+
+.evf-cinzel {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.evf-cormorant {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.evf-marcellus {
+  font-family: 'Marcellus', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: .04em;
+}
+
+.evf-baskerville {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-weight: 700;
+}
+
+.evf-archivo {
+  font-family: 'Archivo', ui-sans-serif, sans-serif;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.evf-josefin {
+  font-family: 'Josefin Sans', ui-sans-serif, sans-serif;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+
+
+
+
+@layer components {
+  .ev-rsvp-script {
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 2.15rem;
+    line-height: 0.95;
+    color: var(--ink);
+  }
+
+  .ev-rsvp-title {
+    font-family: var(--font-display, inherit);
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .ev-rsvp-subtitle {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    color: var(--soft);
+  }
+
+  .ev-rsvp-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .ev-rsvp-hint {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--faint);
+  }
+
+  .ev-rsvp-consent {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--soft);
+  }
+}
+
+/* Hide scrollbar track inside RSVP modal/drawer while keeping scroll functional if screen is tiny */
+.ev-panel,
+.ev-rsvp-scroll-none {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge */
+}
+
+.ev-panel::-webkit-scrollbar,
+.ev-rsvp-scroll-none::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}

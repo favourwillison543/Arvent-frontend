@@ -1,0 +1,2297 @@
+openapi: 3.0.0
+paths:
+  /health:
+    get:
+      operationId: HealthController_live
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: Liveness probe
+      tags:
+        - Health
+  /health/ready:
+    get:
+      operationId: HealthController_ready
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: Readiness probe (database, redis, storage)
+      tags:
+        - Health
+  /events:
+    get:
+      operationId: EventsController_list
+      parameters:
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+        - name: status
+          required: false
+          in: query
+          schema:
+            type: string
+            enum:
+              - draft
+              - published
+              - cancelled
+      responses:
+        '200':
+          description: ''
+      summary: List my events (newest first, cursor paginated)
+      tags:
+        - Organizer · Events
+    post:
+      operationId: EventsController_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Create an event draft (body = CreateEventInput). Publish it with PATCH
+        /events/:id/publish. Send Idempotency-Key (recommended); identical
+        repeats within 10s are de-duplicated anyway.
+      tags:
+        - Organizer · Events
+  /events/{id}:
+    get:
+      operationId: EventsController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Get one of my events with live RSVP stats
+      tags:
+        - Organizer · Events
+    patch:
+      operationId: EventsController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Update an event (body = Partial<CreateEventInput>; omitted fields are
+        unchanged). Returns the Event plus an `impact` hint.
+      tags:
+        - Organizer · Events
+    delete:
+      operationId: EventsController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: >-
+        Permanently delete an event and all its guests, updates, gate keys and
+        photos
+      tags:
+        - Organizer · Events
+  /events/{id}/publish:
+    patch:
+      operationId: EventsController_publish
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Publish a draft (no body). Already published → returned unchanged.
+      tags:
+        - Organizer · Events
+  /events/{id}/cancel:
+    patch:
+      operationId: EventsController_cancel
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelEventDto'
+      responses:
+        '200':
+          description: ''
+      summary: Cancel an event (guests and history are kept; guests are emailed)
+      tags:
+        - Organizer · Events
+  /events/{id}/duplicate:
+    post:
+      operationId: EventsController_duplicate
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      summary: Duplicate an event as a new draft with its own link
+      tags:
+        - Organizer · Events
+  /public/events/{slug}/rsvp:
+    post:
+      operationId: PublicRsvpController_submit
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRsvpDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Submit an RSVP from the shared event link (no account). Sets the guest
+        session as an httpOnly cookie.
+      tags:
+        - Public · RSVP & guest access
+  /public/events/{slug}/guest-access/request-code:
+    post:
+      operationId: PublicRsvpController_requestCode
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestCodeDto'
+      responses:
+        '202':
+          description: ''
+      summary: >-
+        Email a 6-digit code to a guest on this event (same response whether or
+        not the email is listed)
+      tags:
+        - Public · RSVP & guest access
+  /public/events/{slug}/guest-access/verify:
+    post:
+      operationId: PublicRsvpController_verify
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyCodeDto'
+      responses:
+        '200':
+          description: ''
+      summary: Verify the emailed code; sets the guest session cookie for this device
+      tags:
+        - Public · RSVP & guest access
+  /public/guest:
+    get:
+      operationId: PublicGuestController_me
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Get the guest's own RSVP (send X-Event-Slug so the API picks that
+        event's cookie)
+      tags:
+        - Public · Guest self-service
+  /public/guest/rsvp:
+    patch:
+      operationId: PublicGuestController_update
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOwnRsvpDto'
+      responses:
+        '200':
+          description: ''
+      summary: Change my response / additional guests / name / phone
+      tags:
+        - Public · Guest self-service
+  /public/guest/reconfirm:
+    post:
+      operationId: PublicGuestController_reconfirm
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconfirmDto'
+      responses:
+        '200':
+          description: ''
+      summary: Answer a reconfirmation request
+      tags:
+        - Public · Guest self-service
+  /public/guest/session:
+    post:
+      operationId: PublicGuestController_claim
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimGuestTokenDto'
+      responses:
+        '200':
+          description: ''
+      summary: Use an access code from the host; sets the guest session cookie
+      tags:
+        - Public · Guest self-service
+    delete:
+      operationId: PublicGuestController_logout
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      summary: Sign this device out (revokes only this device token)
+      tags:
+        - Public · Guest self-service
+  /events/{eventId}/updates:
+    get:
+      operationId: UpdatesController_list
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: List updates for my event
+      tags:
+        - Organizer · Event updates
+    post:
+      operationId: UpdatesController_create
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUpdateDto'
+      responses:
+        '201':
+          description: ''
+      summary: Post an update (venue change, time change, instructions…)
+      tags:
+        - Organizer · Event updates
+  /events/{eventId}/updates/{updateId}:
+    patch:
+      operationId: UpdatesController_edit
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: updateId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditUpdateDto'
+      responses:
+        '200':
+          description: ''
+      summary: Edit an update
+      tags:
+        - Organizer · Event updates
+    delete:
+      operationId: UpdatesController_remove
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: updateId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: Delete an update
+      tags:
+        - Organizer · Event updates
+  /auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: ''
+      summary: Register an organizer and start a session
+      tags:
+        - Auth
+  /auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: ''
+      summary: Authenticate an organizer
+      tags:
+        - Auth
+  /auth/refresh:
+    post:
+      operationId: AuthController_refresh
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Rotate the session: reads the httpOnly refresh cookie, sets new access +
+        refresh cookies
+      tags:
+        - Auth
+  /auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      summary: End the current organizer session (revokes it server-side immediately)
+      tags:
+        - Auth
+  /auth/me:
+    get:
+      operationId: AuthController_me
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: Get the authenticated organizer
+      tags:
+        - Auth
+    patch:
+      operationId: AuthController_updateMe
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Update my name, phone number or WhatsApp opt-in (a new number must be
+        re-verified)
+      tags:
+        - Auth
+  /auth/forgot-password:
+    post:
+      operationId: AuthController_forgotPassword
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordDto'
+      responses:
+        '202':
+          description: ''
+      summary: >-
+        Email a password reset link (same response whether or not the account
+        exists)
+      tags:
+        - Auth
+  /auth/reset-password:
+    post:
+      operationId: AuthController_resetPassword
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDto'
+      responses:
+        '204':
+          description: ''
+      summary: Set a new password using a reset token; signs out all devices
+      tags:
+        - Auth
+  /events/{eventId}/guests:
+    get:
+      operationId: GuestsController_list
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+        - name: status
+          required: false
+          in: query
+          schema:
+            type: string
+            enum:
+              - going
+              - maybe
+              - not_going
+              - pending_approval
+              - waitlisted
+              - no_response
+              - checked_in
+              - walk_in
+        - name: q
+          required: false
+          in: query
+          description: Search name, email or phone
+          schema:
+            maxLength: 100
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: List guests (filter by status, search, cursor pagination)
+      tags:
+        - Organizer · Guests
+    post:
+      operationId: GuestsController_create
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGuestDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Add a guest (managed events: add their email so they can verify and
+        respond)
+      tags:
+        - Organizer · Guests
+  /events/{eventId}/guests/{guestId}:
+    patch:
+      operationId: GuestsController_update
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: guestId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Edit a guest. Approve request: rsvpStatus=going. Reject: not_going.
+        Promote waitlist: going (capacity-checked).
+      tags:
+        - Organizer · Guests
+    delete:
+      operationId: GuestsController_remove
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: guestId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: Remove a guest
+      tags:
+        - Organizer · Guests
+  /events/{eventId}/guests/{guestId}/regenerate-token:
+    post:
+      operationId: GuestsController_regenerate
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: guestId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Revoke all of a guest's devices and issue one new access code (shown
+        once)
+      tags:
+        - Organizer · Guests
+  /events/{eventId}/reconfirmation/start:
+    post:
+      operationId: AttendanceController_start
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartReconfirmationDto'
+      responses:
+        '200':
+          description: ''
+      summary: Start a reconfirmation round
+      tags:
+        - Organizer · Reconfirmation & attendance
+  /events/{eventId}/attendance:
+    get:
+      operationId: AttendanceController_get
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Authoritative attendance summary
+      tags:
+        - Organizer · Reconfirmation & attendance
+  /events/{eventId}/gate-access:
+    get:
+      operationId: GateAccessController_list
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: List gate access codes (codes themselves are never shown again)
+      tags:
+        - Organizer · Gate access
+    post:
+      operationId: GateAccessController_create
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGateAccessDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Create a gate code scoped to this event and permissions. The code is
+        returned ONCE.
+      tags:
+        - Organizer · Gate access
+  /events/{eventId}/gate-access/{accessId}:
+    delete:
+      operationId: GateAccessController_revoke
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: accessId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: Revoke a gate code (active gate sessions stop working immediately)
+      tags:
+        - Organizer · Gate access
+  /gate/session:
+    post:
+      operationId: GateController_session
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GateSessionDto'
+      responses:
+        '200':
+          description: ''
+      summary: Exchange a gate code for a short-lived gate session (httpOnly cookie)
+      tags:
+        - Gate
+  /events/{eventId}/gate-list:
+    get:
+      operationId: GateController_gateList
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+        - name: q
+          required: false
+          in: query
+          description: Search by name or phone digits
+          schema:
+            maxLength: 100
+            type: string
+        - name: category
+          required: false
+          in: query
+          schema:
+            type: string
+            enum:
+              - expected
+              - checked_in
+              - waitlisted
+              - pending
+              - not_eligible
+      responses:
+        '200':
+          description: ''
+      summary: Gate list for organizers and gate staff (masked phones, no emails)
+      tags:
+        - Gate
+  /events/{eventId}/guests/{guestId}/check-in:
+    post:
+      operationId: GateController_checkIn
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: guestId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Check a guest in, fully or partly (`seats`). Send an Idempotency-Key so
+        a retried request never double-counts. 409 ALREADY_CHECKED_IN /
+        GUEST_NOT_ELIGIBLE give clear feedback.
+      tags:
+        - Gate
+    delete:
+      operationId: GateController_undo
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: guestId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Undo a mistaken check-in (organizer only, audited)
+      tags:
+        - Gate
+  /events/{eventId}/walk-ins:
+    post:
+      operationId: GateController_walkIn
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalkInDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Register a walk-in (counts toward capacity). Idempotency-Key
+        recommended.
+      tags:
+        - Gate
+  /public/events:
+    get:
+      operationId: PublicEventsController_discover
+      parameters:
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+        - name: q
+          required: false
+          in: query
+          description: Search in title
+          schema:
+            maxLength: 80
+            type: string
+        - name: type
+          required: false
+          in: query
+          schema:
+            type: string
+            enum:
+              - birthday
+              - party
+              - wedding
+              - ceremony
+              - dinner
+              - conference
+              - meetup
+              - other
+      responses:
+        '200':
+          description: ''
+      summary: Discover upcoming public events
+      tags:
+        - Public · Events
+  /public/events/{slug}:
+    get:
+      operationId: PublicEventsController_detail
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Public event page data (works for private events via their link)
+      tags:
+        - Public · Events
+  /public/events/{slug}/updates:
+    get:
+      operationId: PublicEventsController_listUpdates
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Public event updates (important first)
+      tags:
+        - Public · Events
+  /events/{eventId}/memories:
+    get:
+      operationId: MemoriesController_view
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+      responses:
+        '200':
+          description: ''
+      summary: Settings, storage usage and photos for my event
+      tags:
+        - Organizer · Memories
+  /events/{eventId}/memories/settings:
+    patch:
+      operationId: MemoriesController_settings
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemoriesSettingsDto'
+      responses:
+        '200':
+          description: ''
+      summary: Update Memories settings
+      tags:
+        - Organizer · Memories
+  /events/{eventId}/memories/{photoId}:
+    delete:
+      operationId: MemoriesController_remove
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: photoId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: >-
+        Delete a photo (hidden immediately; storage released once the file is
+        deleted)
+      tags:
+        - Organizer · Memories
+  /public/events/{slug}/memories:
+    get:
+      operationId: PublicMemoriesController_gallery
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+      responses:
+        '200':
+          description: ''
+      summary: Shared gallery (access depends on the event settings)
+      tags:
+        - Public · Memories
+    post:
+      operationId: PublicMemoriesController_upload
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: >-
+          One image in the "photo" field ("image" or "file" also accepted).
+          JPEG, PNG or WebP.
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+              required:
+                - photo
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Upload one photo (multipart field "photo"). Metadata incl. GPS is
+        stripped.
+      tags:
+        - Public · Memories
+  /uploads/event-image:
+    post:
+      operationId: UploadsController_eventImage
+      parameters: []
+      requestBody:
+        required: true
+        description: >-
+          One image in the "image" field ("file" or "photo" also accepted).
+          JPEG, PNG or WebP.
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required:
+                - image
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Upload an event image (multipart field "image"). Returns `imageUrl`:
+        send it as CreateEventInput.imageUrl.
+      tags:
+        - Organizer · Uploads
+  /uploads/moment-image:
+    post:
+      operationId: UploadsController_momentImage
+      parameters: []
+      requestBody:
+        required: true
+        description: >-
+          One image in the "image" field ("file" or "photo" also accepted).
+          JPEG, PNG or WebP.
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required:
+                - image
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Upload a Moment image (signed-in). Returns `imageUrl`: send it as the
+        Moment `photo`.
+      tags:
+        - Organizer · Uploads
+  /moments:
+    get:
+      operationId: MomentsController_list
+      parameters:
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque cursor from the previous page `nextCursor`.
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+      responses:
+        '200':
+          description: ''
+      summary: 'Moments index: Moments I created while signed in (newest first)'
+      tags:
+        - Organizer · Moments
+  /moments/{id}:
+    delete:
+      operationId: MomentsController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      summary: Delete a Moment I created
+      tags:
+        - Organizer · Moments
+  /public/moments:
+    post:
+      operationId: PublicMomentsController_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Unique key per user intent (UUID recommended). Retries with the same
+            key replay the first result.
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMomentDto'
+      responses:
+        '201':
+          description: ''
+      summary: >-
+        Create a Moment (body = CreateMomentInput). No sign-in needed; if signed
+        in, it also appears in GET /moments.
+      tags:
+        - Public · Moments
+  /public/moments/{id}:
+    get:
+      operationId: PublicMomentsController_get
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: Get a Moment by id (anyone with the link)
+      tags:
+        - Public · Moments
+  /public/guest/pass/session:
+    post:
+      operationId: GuestPassController_claim
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimPassDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Exchange the pass token from an email link (#token=agp_…) for a
+        read-only httpOnly pass cookie; returns the pass
+      tags:
+        - Public · Guest pass
+  /public/guest/pass:
+    get:
+      operationId: GuestPassController_get
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Get the guest pass: with the pass cookie (after POST
+        /public/guest/pass/session) or the guest cookie (send X-Event-Slug).
+      tags:
+        - Public · Guest pass
+  /public/guest/notifications:
+    get:
+      operationId: GuestNotificationsController_get
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        My email preferences for this event (guest token or the pass token from
+        an email link)
+      tags:
+        - Public · Guest email preferences
+    patch:
+      operationId: GuestNotificationsController_update
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuestNotificationsDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Turn update / reminder emails on or off (turning one on lifts
+        "unsubscribe from all")
+      tags:
+        - Public · Guest email preferences
+  /public/notifications/unsubscribe:
+    post:
+      operationId: UnsubscribeController_unsubscribe
+      parameters:
+        - name: token
+          required: true
+          in: query
+          description: Guest pass token (agp_…) from the email link
+          schema: {}
+      responses:
+        '200':
+          description: ''
+      summary: One-click unsubscribe from all emails for this event (RFC 8058)
+      tags:
+        - Public · Guest email preferences
+  /events/{eventId}/notifications:
+    get:
+      operationId: EventNotificationsController_get
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Notification settings, delivery stats and upcoming reminders for an
+        event
+      tags:
+        - Organizer · Notifications
+    patch:
+      operationId: EventNotificationsController_update
+      parameters:
+        - name: eventId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventNotificationsDto'
+      responses:
+        '200':
+          description: ''
+      summary: >-
+        Change what Arvent emails guests (change/cancel notices, 24h and 3h
+        reminders)
+      tags:
+        - Organizer · Notifications
+info:
+  title: Arvent API
+  description: >-
+    Arvent V1 — invitations, RSVP, reconfirmation, gate check-in, Memories and
+    Moments.
+  version: 1.0.0
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    cookie:
+      type: apiKey
+      in: cookie
+      name: arvent_at
+      description: >-
+        Sessions are httpOnly cookies. In this page, call POST /auth/login (or
+        register) with "Try it out": the browser stores the cookies and sends
+        them automatically on the next calls. No token to paste.
+  schemas:
+    CreateEventDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 140
+          example: Ada's 30th Birthday
+        type:
+          enum:
+            - birthday
+            - party
+            - wedding
+            - ceremony
+            - dinner
+            - conference
+            - meetup
+            - other
+          type: string
+          example: birthday
+        description:
+          type: string
+          maxLength: 5000
+          default: ''
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 2048
+          format: uri
+          description: >-
+            The `imageUrl` returned by POST /uploads/event-image. Upload the
+            file first; never send a data: URL.
+        date:
+          type: string
+          example: '2026-12-24'
+          description: Stored exactly as sent
+        doorsOpenTime:
+          type: string
+          nullable: true
+          example: '17:30'
+        programStartTime:
+          type: string
+          example: '18:00'
+        timezone:
+          type: string
+          maxLength: 64
+          example: Africa/Lagos
+          default: Africa/Lagos
+          description: IANA timezone
+        venueName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Eko Hotel
+        location:
+          type: string
+          minLength: 1
+          maxLength: 500
+          example: Plot 1415 Adetokunbo Ademola St, Victoria Island, Lagos
+        landmark:
+          type: string
+          nullable: true
+          maxLength: 300
+          example: Opposite the Civic Centre
+        mapsUrl:
+          type: string
+          nullable: true
+          maxLength: 1000
+          format: uri
+          example: https://maps.app.goo.gl/abc123
+        visibility:
+          enum:
+            - public
+            - private
+          type: string
+        rsvpAccess:
+          enum:
+            - open
+            - request
+            - managed
+          type: string
+        capacity:
+          type: number
+          nullable: true
+          minimum: 1
+          maximum: 100000
+          description: Total seats incl. additional guests. Omit or null = unlimited.
+        maxAdditionalGuests:
+          type: number
+          minimum: 0
+          maximum: 20
+          default: 0
+          description: '"Plus ones" each guest may bring'
+        waitlistEnabled:
+          type: boolean
+          default: true
+        dressCode:
+          type: string
+          nullable: true
+          maxLength: 300
+          example: All white
+        eventColors:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: >-
+            Invitation design (themeId, posterId, fontId, effectId, rsvpStyleId,
+            rsvpMode, rsvpGoing, rsvpMaybe, rsvpNo, background, themeImage, …).
+            Stored verbatim, unknown keys kept.
+          example:
+            themeId: noir
+            posterId: gold-night
+            fontId: classic
+            effectId: glow
+            rsvpStyleId: classic
+            rsvpMode: icons
+            rsvpGoing: check
+            rsvpMaybe: clock
+            rsvpNo: x
+        memoriesEnabled:
+          type: boolean
+          default: true
+          description: false = no new photo uploads (existing photos stay)
+        memoriesAccess:
+          enum:
+            - invitees
+            - public
+          type: string
+          default: invitees
+        memoriesStorageLimitBytes:
+          type: number
+          minimum: 1048576
+          description: Gallery storage for this event, in bytes (server maximum applies)
+          example: 524288000
+        memoriesPhotoLimit:
+          type: number
+          minimum: 1
+          maximum: 100000
+          default: 500
+        memoriesPhotosPerGuest:
+          enum:
+            - 1
+            - 2
+          type: number
+          default: 2
+        rsvpDeadline:
+          type: string
+          nullable: true
+          description: 'Extension: close RSVPs at this ISO time (default: event start)'
+        showGuestCount:
+          type: boolean
+          description: 'Extension: show "N going" on the public page'
+          default: false
+      required:
+        - name
+        - type
+        - date
+        - programStartTime
+        - venueName
+        - location
+        - visibility
+        - rsvpAccess
+    UpdateEventDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 140
+          example: Ada's 30th Birthday
+        type:
+          enum:
+            - birthday
+            - party
+            - wedding
+            - ceremony
+            - dinner
+            - conference
+            - meetup
+            - other
+          type: string
+          example: birthday
+        description:
+          type: string
+          maxLength: 5000
+          default: ''
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 2048
+          format: uri
+          description: >-
+            The `imageUrl` returned by POST /uploads/event-image. Upload the
+            file first; never send a data: URL.
+        date:
+          type: string
+          example: '2026-12-24'
+          description: Stored exactly as sent
+        doorsOpenTime:
+          type: string
+          nullable: true
+          example: '17:30'
+        programStartTime:
+          type: string
+          example: '18:00'
+        timezone:
+          type: string
+          maxLength: 64
+          example: Africa/Lagos
+          default: Africa/Lagos
+          description: IANA timezone
+        venueName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Eko Hotel
+        location:
+          type: string
+          minLength: 1
+          maxLength: 500
+          example: Plot 1415 Adetokunbo Ademola St, Victoria Island, Lagos
+        landmark:
+          type: string
+          nullable: true
+          maxLength: 300
+          example: Opposite the Civic Centre
+        mapsUrl:
+          type: string
+          nullable: true
+          maxLength: 1000
+          format: uri
+          example: https://maps.app.goo.gl/abc123
+        visibility:
+          enum:
+            - public
+            - private
+          type: string
+        rsvpAccess:
+          enum:
+            - open
+            - request
+            - managed
+          type: string
+        capacity:
+          type: number
+          nullable: true
+          minimum: 1
+          maximum: 100000
+          description: Total seats incl. additional guests. Omit or null = unlimited.
+        maxAdditionalGuests:
+          type: number
+          minimum: 0
+          maximum: 20
+          default: 0
+          description: '"Plus ones" each guest may bring'
+        waitlistEnabled:
+          type: boolean
+          default: true
+        dressCode:
+          type: string
+          nullable: true
+          maxLength: 300
+          example: All white
+        eventColors:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: >-
+            Invitation design (themeId, posterId, fontId, effectId, rsvpStyleId,
+            rsvpMode, rsvpGoing, rsvpMaybe, rsvpNo, background, themeImage, …).
+            Stored verbatim, unknown keys kept.
+          example:
+            themeId: noir
+            posterId: gold-night
+            fontId: classic
+            effectId: glow
+            rsvpStyleId: classic
+            rsvpMode: icons
+            rsvpGoing: check
+            rsvpMaybe: clock
+            rsvpNo: x
+        memoriesEnabled:
+          type: boolean
+          default: true
+          description: false = no new photo uploads (existing photos stay)
+        memoriesAccess:
+          enum:
+            - invitees
+            - public
+          type: string
+          default: invitees
+        memoriesStorageLimitBytes:
+          type: number
+          minimum: 1048576
+          description: Gallery storage for this event, in bytes (server maximum applies)
+          example: 524288000
+        memoriesPhotoLimit:
+          type: number
+          minimum: 1
+          maximum: 100000
+          default: 500
+        memoriesPhotosPerGuest:
+          enum:
+            - 1
+            - 2
+          type: number
+          default: 2
+        rsvpDeadline:
+          type: string
+          nullable: true
+          description: 'Extension: close RSVPs at this ISO time (default: event start)'
+        showGuestCount:
+          type: boolean
+          description: 'Extension: show "N going" on the public page'
+          default: false
+        confirmOverCapacity:
+          type: boolean
+          description: >-
+            Extension: required (true) to set capacity below the seats already
+            confirmed. Nobody is removed.
+    CancelEventDto:
+      type: object
+      properties:
+        reason:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Shown to visitors
+    SubmitRsvpDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Tunde Bakare
+        email:
+          type: string
+          maxLength: 254
+          format: email
+          description: >-
+            Email or phone (at least one is required, PRD v2.2 §6.2). Email also
+            lets the guest recover access.
+        phone:
+          type: string
+          maxLength: 32
+          example: '08031234567'
+          description: >-
+            Email or phone (at least one is required). Nigerian numbers may omit
+            +234.
+        rsvpStatus:
+          enum:
+            - going
+            - maybe
+            - not_going
+          type: string
+        additionalGuestCount:
+          type: number
+          minimum: 0
+          maximum: 20
+          default: 0
+          description: Only for "going"; at most the event's maxAdditionalGuests
+        consent:
+          type: boolean
+          description: >-
+            The consent checkbox. Must be true: consent has to be given
+            deliberately (PRD v2.2 §6.2). Recorded with a timestamp.
+          example: true
+        emailConsent:
+          type: boolean
+          description: >-
+            The "Email me updates and reminders about this event" checkbox. true
+            = explicit opt-in (recorded with a timestamp), false = only
+            essential emails (confirmation, cancellation). Omitted = opted in
+            (service emails about an event the guest RSVP'd to); show the
+            checkbox to give guests the choice.
+      required:
+        - name
+        - rsvpStatus
+        - consent
+    RequestCodeDto:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+      required:
+        - email
+    VerifyCodeDto:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+        code:
+          type: string
+          pattern: ^\d{6}$
+          example: '482913'
+      required:
+        - email
+        - code
+    UpdateOwnRsvpDto:
+      type: object
+      properties:
+        rsvpStatus:
+          enum:
+            - going
+            - maybe
+            - not_going
+          type: string
+        additionalGuestCount:
+          type: number
+          minimum: 0
+          maximum: 20
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phone:
+          type: string
+          nullable: true
+          maxLength: 32
+    ReconfirmDto:
+      type: object
+      properties:
+        attending:
+          type: boolean
+          description: true = still coming, false = can no longer attend
+      required:
+        - attending
+    ClaimGuestTokenDto:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 100
+          description: Access code shared by the host (from "regenerate token")
+      required:
+        - token
+    CreateUpdateDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 140
+          example: Venue change
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          example: We have moved to the rooftop. Same time!
+        isImportant:
+          type: boolean
+          default: false
+          description: Pinned and highlighted on the public page
+      required:
+        - title
+        - message
+    EditUpdateDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 140
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        isImportant:
+          type: boolean
+    RegisterDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Ada Lovelace
+        email:
+          type: string
+          maxLength: 254
+          format: email
+          example: ada@example.com
+        phoneNumber:
+          type: string
+          minLength: 5
+          maxLength: 32
+          example: '08031234567'
+          description: >-
+            Mobile number. Nigerian numbers may omit +234; other countries need
+            the + prefix. Stored as E.164 (+2348031234567). Must be unique (409
+            PHONE_TAKEN).
+        whatsappOptIn:
+          type: boolean
+          default: false
+          description: >-
+            The "Send me event updates on WhatsApp" checkbox. Recorded with a
+            timestamp (WhatsApp requires opt-in).
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+      required:
+        - name
+        - email
+        - phoneNumber
+        - password
+    LoginDto:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+        password:
+          type: string
+          maxLength: 128
+      required:
+        - email
+        - password
+    UpdateMeDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Ada Lovelace
+        phoneNumber:
+          type: string
+          minLength: 5
+          maxLength: 32
+          example: '08031234567'
+          description: Changing the number clears its verification.
+        whatsappOptIn:
+          type: boolean
+    ForgotPasswordDto:
+      type: object
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          format: email
+      required:
+        - email
+    ResetPasswordDto:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 200
+          description: Token from the reset link (URL fragment).
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+      required:
+        - token
+        - password
+    CreateGuestDto:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+          format: email
+          description: Needed for the guest to self-manage their RSVP (email code)
+        phone:
+          type: string
+          nullable: true
+          maxLength: 32
+        rsvpStatus:
+          nullable: true
+          enum:
+            - going
+            - maybe
+            - not_going
+            - pending_approval
+            - waitlisted
+          type: string
+          description: null = invited, no response yet
+        additionalGuestCount:
+          type: number
+          minimum: 0
+          maximum: 50
+        seatLimit:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 50
+          description: >-
+            Max additional guests this person may bring. null = the event's
+            maxAdditionalGuests.
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Private organizer note
+        overrideCapacity:
+          type: boolean
+          description: Explicitly allow exceeding capacity (audited)
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+        - name
+    UpdateGuestDto:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+          format: email
+          description: Needed for the guest to self-manage their RSVP (email code)
+        phone:
+          type: string
+          nullable: true
+          maxLength: 32
+        rsvpStatus:
+          nullable: true
+          enum:
+            - going
+            - maybe
+            - not_going
+            - pending_approval
+            - waitlisted
+          type: string
+          description: null = invited, no response yet
+        additionalGuestCount:
+          type: number
+          minimum: 0
+          maximum: 50
+        seatLimit:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 50
+          description: >-
+            Max additional guests this person may bring. null = the event's
+            maxAdditionalGuests.
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Private organizer note
+        overrideCapacity:
+          type: boolean
+          description: Explicitly allow exceeding capacity (audited)
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+    StartReconfirmationDto:
+      type: object
+      properties:
+        includeMaybe:
+          type: boolean
+          default: false
+          description: Also ask guests who answered "maybe"
+        notifyByEmail:
+          type: boolean
+          default: false
+          description: Email guests who have an email address
+    CreateGateAccessDto:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: Main gate — Chidi
+        permissions:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            type: string
+            enum:
+              - check_in
+              - walk_in
+              - override_capacity
+          example:
+            - check_in
+            - walk_in
+        expiresAt:
+          type: string
+          description: Defaults to one day after the event ends (max 30 days from now)
+      required:
+        - label
+        - permissions
+    GateSessionDto:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 40
+          example: 7K2P-9XQ4-M3TD
+          description: Gate code from the organizer (dashes/case optional)
+      required:
+        - code
+    CheckInDto:
+      type: object
+      properties:
+        seats:
+          type: number
+          minimum: 1
+          maximum: 51
+          description: >-
+            Seats arriving now (partial arrivals, PRD v2.2 §7). Default: all
+            remaining seats. A guest with 4 seats can arrive as 2 + 2.
+        admit:
+          type: boolean
+          description: >-
+            Admit a guest who is not "going" (maybe/waitlisted/pending). Marks
+            them going; capacity is enforced.
+        overrideCapacity:
+          type: boolean
+          description: >-
+            Exceed capacity. Organizer, or gate access with override_capacity.
+            Audited.
+    WalkInDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phone:
+          type: string
+          maxLength: 32
+        seats:
+          type: number
+          minimum: 1
+          maximum: 51
+          example: 2
+          description: People arriving together (the walk-in + their companions)
+        email:
+          type: string
+          maxLength: 254
+          format: email
+          description: 'Extension: optional email'
+        overrideCapacity:
+          type: boolean
+      required:
+        - name
+        - seats
+    UpdateMemoriesSettingsDto:
+      type: object
+      properties:
+        memoriesEnabled:
+          type: boolean
+          description: false = no new uploads; existing photos stay (PRD §16.3)
+        memoriesAccess:
+          enum:
+            - invitees
+            - public
+          type: string
+          description: Who can view the gallery
+        memoriesStorageLimitBytes:
+          type: number
+          minimum: 1048576
+          description: Gallery storage in bytes (server maximum applies)
+          example: 524288000
+        memoriesPhotoLimit:
+          type: number
+          minimum: 1
+          maximum: 100000
+        memoriesPhotosPerGuest:
+          enum:
+            - 1
+            - 2
+          type: number
+        uploadAccess:
+          enum:
+            - going_guests
+            - checked_in_guests
+          type: string
+          description: 'Extension: which guests may upload (default going_guests)'
+    CreateMomentDto:
+      type: object
+      properties:
+        kind:
+          enum:
+            - save-the-date
+            - announcement
+            - milestone
+            - thank-you
+          type: string
+        style:
+          enum:
+            - editorial
+            - photo
+            - minimal
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 140
+          example: Tolu & Kemi are getting married
+        date:
+          type: string
+          maxLength: 40
+          example: '2027-02-14'
+          description: Stored exactly as sent ("" if not used)
+        place:
+          type: string
+          maxLength: 300
+          example: Lagos
+          description: '"" if not used'
+        message:
+          type: string
+          maxLength: 5000
+          example: Save the date!
+        from:
+          type: string
+          maxLength: 140
+          example: Tolu & Kemi
+        photo:
+          type: string
+          maxLength: 2048
+          pattern: ^https?:\/\/\S+$
+          description: >-
+            Image URL (e.g. from POST /uploads/moment-image) or "" for none.
+            data: URLs are not accepted.
+        themeId:
+          type: string
+          maxLength: 64
+          example: noir
+        fontId:
+          type: string
+          maxLength: 64
+          example: classic
+        effectId:
+          type: string
+          maxLength: 64
+          example: glow
+        eventId:
+          type: string
+          description: An Arvent event id, or "" for a standalone Moment
+          example: ''
+      required:
+        - kind
+        - style
+        - title
+        - date
+        - place
+        - message
+        - from
+        - photo
+        - themeId
+        - fontId
+        - effectId
+        - eventId
+    ClaimPassDto:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 120
+          pattern: ^agp_[A-Za-z0-9_-]+$
+          description: The `agp_…` token from the email link fragment (#token=…)
+      required:
+        - token
+    UpdateGuestNotificationsDto:
+      type: object
+      properties:
+        updates:
+          type: boolean
+          description: >-
+            Emails when the date, time or location changes, or the host posts an
+            important update
+        reminders:
+          type: boolean
+          description: >-
+            Reminder emails before the event (24 hours, and 3 hours if the host
+            enabled it)
+    UpdateEventNotificationsDto:
+      type: object
+      properties:
+        emailGuestsOnChanges:
+          type: boolean
+          description: >-
+            Email guests when the date/time/location changes, the event is
+            cancelled, or an important update is posted
+        reminder24h:
+          type: boolean
+          description: Remind confirmed guests 24 hours before the start
+        reminder3h:
+          type: boolean
+          description: Also remind confirmed guests 3 hours before the start

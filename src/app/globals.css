@@ -1,0 +1,593 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700&family=Playfair+Display:wght@700&family=Pacifico&family=Caveat:wght@700&family=Orbitron:wght@700&family=Bebas+Neue&family=Shrikhand&family=Bowlby+One&family=Cinzel:wght@600&family=Cormorant+Garamond:wght@600&family=Marcellus&family=Libre+Baskerville:wght@700&family=Archivo:wght@600&family=Josefin+Sans:wght@600&display=swap');
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f7f4eb;
+  --dashboard: #e8e8e2;
+  --foreground: #18181b;
+  --surface: #fcfcf9;
+  --muted: #e8e8e2;
+  --muted-foreground: #6b6b66;
+  --border: #d8d8d0;
+
+  --brand: #dcf91c;
+  --brand-foreground: #18181b;
+  --brand-hover: #cdea0c;
+  --ring: #dcf91c;
+  --destructive: #fb7185;
+  /* Readable danger ink for text/links on a surface (the accent above is a fill). */
+  --destructive-ink: #b42318;
+
+  /* The poster ink: the near-black the create flow prints on white, lime and
+     pastel artwork. A shade bluer than `--foreground`, which is why it is a
+     name of its own rather than a rounding of it. */
+  --poster-ink: #1a1a2e;
+
+  --status-going: #10b981;
+  --status-maybe: #f59e0b;
+  --status-declined: #f43f5e;
+  --status-pending: #8b5cf6;
+  --status-waitlist: #0ea5e9;
+
+  /* The stacking ladder. Every fixed surface in the product picks a rung from
+     here instead of inventing a number: the action rails, sticky headers, edge
+     sheets, the mobile tab bar, centred dialogs, and toasts. */
+  --z-base: 0;
+  --z-rail: 40;
+  --z-sticky: 45;
+  --z-sheet: 50;
+  --z-nav: 55;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* The rise a floating bottom surface needs: the mobile tab bar (when the
+     route has one) plus the device's home indicator. Kept for the surfaces that
+     read it directly; the `bottom-float` / `pb-float` utilities compute the same
+     sum on the element itself (see below), because a value declared here is
+     resolved here and would keep the `0px` fallback forever. */
+  --float-offset: calc(
+    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.75rem
+  );
+
+  /* The mobile tab bar's own height, declared once. `HomeSidebar` draws the bar
+     and every frame that floats a surface above it or pads its content under it
+     reads this number, so the bar can never grow taller than the space reserved
+     for it. */
+  --bottom-nav-h: 4.25rem;
+
+  /* Motion: one tempo for colour. The global element transition below reads
+     these, so a theme switch, a hover and a focus ring cross-fade at the same
+     speed as `Button` and the sidebar labels (which already use `duration-150`)
+     instead of the 180ms this file used before. Moves that are not colour — the
+     reveal on scroll, a card lifting on hover, the navbar drawer — keep their
+     own longer tempos, because they are gestures, not state changes. */
+  --motion-quick: 150ms;
+  --motion-ease: ease;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-dashboard: var(--dashboard);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-hover: var(--brand-hover);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-ink: var(--destructive-ink);
+  --color-poster-ink: var(--poster-ink);
+
+  --color-status-going: var(--status-going);
+  --color-status-maybe: var(--status-maybe);
+  --color-status-declined: var(--status-declined);
+  --color-status-pending: var(--status-pending);
+  --color-status-waitlist: var(--status-waitlist);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), "Trebuchet MS", ui-sans-serif, sans-serif;
+  --font-accent: var(--font-instrument), Georgia, serif;
+}
+
+/* --------------------------------------------------------------------------
+   The shared design scale.
+
+   One place for the sizes Tailwind doesn't ship, so a screen can't invent a
+   number of its own. Colours are untouched — they stay in `:root` and in the
+   `@theme inline` mapping above, and the themed canvas in `theme.css` keeps
+   reading those same variables.
+
+   Every value here is one the product already used, promoted to a name, with
+   one exception: the type floor below is a rule, not a promoted value.
+
+   THE TYPE FLOOR — 13px
+   Nothing in the product renders smaller than 13px. Tailwind ships `xs` at
+   12px and this project had grown an 11px `2xs` and a 10px `3xs` beside it, so
+   three caption sizes were all under the floor. Both named sizes now resolve to
+   the floor (`2xs` is kept as the name the call sites already use) and `3xs` is
+   gone — it had no callers, and leaving a 10px token in the scale is a trap for
+   the next screen. 13px is also comfortably clear of the 12px at which iOS
+   starts inflating the page when a field takes focus.
+
+   A relative size is not a way around the floor: `text-[1.1em]` (the accent
+   serif set against its own line) scales with a parent that is already at least
+   13px, so it is allowed where an absolute small size is not.
+
+     text-2xs  13px / 18px   the floor (was 11px)
+     xs        13px / 18px   pinned up from Tailwind's 12px
+     sm 14 / base 16 stay as Tailwind ships them
+     radius-field 12px · radius-panel 16px · radius-sheet 24px
+
+   THE SPACING GRID — 4px, eight steps
+   A layout is built from 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 and nothing in
+   between, which is `1 / 2 / 3 / 4 / 6 / 8 / 12 / 16` in Tailwind's 4px base.
+   The base is declared below so the grid can't drift. A number that isn't one
+   of those eight belongs to a drawing — the invitation miniature in `CTA`, the
+   poster faces in `MomentCard`, the seat chart in `AttendanceSection`, the
+   poster artwork in `posterDesigns` — and those files each say so at the site.
+   -------------------------------------------------------------------------- */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-2xs: var(--text-xs);
+  --text-2xs--line-height: var(--text-xs--line-height);
+
+  /* Small-caps labels: the eyebrow above a title, the caption under a stat. */
+  --tracking-label: 0.14em;
+  --tracking-caps: 0.22em;
+
+  /* The 4px grid, pinned. Every layout value is a multiple of this. */
+  --spacing: 0.25rem;
+
+  /* The page cap — 1408px, the width `WIDE_BODY` opens to on a large screen. */
+  --container-page: 88rem;
+
+  /* The frosted surface: one blur, shared by every sticky bar and field. */
+  --blur-sticky: 10px;
+
+  /* Surfaces: a form control, a card or panel, a full-height sheet. */
+  --radius-field: 0.75rem;
+  --radius-panel: 1rem;
+  --radius-sheet: 1.5rem;
+
+  /* Elevation: resting, floating panel, and the one that covers the screen. */
+  --shadow-raise: 0 1px 2px rgb(24 24 27 / 6%);
+  --shadow-panel: 0 10px 30px rgb(24 24 27 / 8%);
+  --shadow-sheet: 0 24px 60px rgb(24 24 27 / 18%);
+  /* The hover lift the solid buttons already used, now a named step. */
+  --shadow-lift: 4px 4px 0 var(--foreground);
+}
+
+/* `z-index` isn't a Tailwind theme namespace, so the ladder is exposed as
+   utilities: `z-rail`, `z-sticky`, `z-sheet`, `z-nav`, `z-modal`, `z-toast`. */
+@utility z-rail {
+  z-index: var(--z-rail);
+}
+
+@utility z-sticky {
+  z-index: var(--z-sticky);
+}
+
+@utility z-sheet {
+  z-index: var(--z-sheet);
+}
+
+@utility z-nav {
+  z-index: var(--z-nav);
+}
+
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+
+/* The bottom rise for any floating bar, sheet footer or toast stack.
+ *
+ * The `var()`s are written here rather than reading `--float-offset`, because a
+ * custom property is substituted once, on the element that declares it. At
+ * `:root` there is no tab bar, so `--float-offset` resolved to
+ * `0px + safe-area + 0.75rem` there and every descendant inherited that already-
+ * resolved value — `--app-bottom-nav-h` on `.organizer-workspace` (or on
+ * `.invitation-frame`) was ignored. That is why the invitation's RSVP bar parked
+ * itself *under* the tab bar on a phone. These utilities resolve the height on
+ * the element that uses it, so a frame can declare the bar and be obeyed. */
+@utility bottom-float {
+  bottom: calc(
+    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.75rem
+  );
+}
+
+@utility pb-float {
+  padding-bottom: calc(
+    var(--app-bottom-nav-h, 0px) + env(safe-area-inset-bottom) + 0.75rem
+  );
+}
+
+/* Appearance is chosen by the organizer, not by the OS: `dark:` must follow the
+   stored preference. A themed screen (`/create`, `/create/preview`) also counts
+   as dark chrome while it paints a dark canvas — see [data-canvas] below.
+   `.ev` invitation themes keep their own `data-mode`. */
+@custom-variant dark (&:where([data-appearance="dark"] *, [data-canvas="dark"] *));
+
+html {
+  max-width: 100%;
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* --------------------------------------------------------------------------
+   Organizer workspace tokens.
+   Light-first: the values below are byte-for-byte the same palette the public
+   landing and Moments pages read from `:root`, so a light dashboard, a light
+   settings page and a light marketing page read as one product. Dark is a
+   complete alternative selected by the organizer (see [data-appearance] below).
+   Public invitations never read these: they use the .ev tokens in theme.css.
+   -------------------------------------------------------------------------- */
+
+.organizer-workspace,
+.workspace-theme {
+  color-scheme: light;
+  --background: #f7f4eb;
+  --dashboard: #f7f4eb;
+  --foreground: #18181b;
+  --surface: #fcfcf9;
+  --muted: #e8e8e2;
+  --muted-foreground: #6b6b66;
+  --border: #d8d8d0;
+  --brand-foreground: #18181b;
+  --ring: #dcf91c;
+  --destructive-ink: #b42318;
+}
+
+/* Charcoal, not pure black: the canvas is the darkest step and every surface
+   sits a little above it so panels, cards and menus stay distinguishable.
+
+   Chrome follows the canvas, not only the stored appearance. `/create` and
+   `/create/preview` paint a full-bleed event canvas; `ThemeShell` reports its
+   mode on `<html data-canvas>`. When that canvas is dark the workspace tokens
+   inside it go dark too, so the sidebar (and the mobile tab bar) never sit on a
+   dark theme as a cream rail. Only `dark` is handled: a light event theme never
+   lightens the organizer's dark workspace.
+
+   Both triggers share one declaration block — the palette used to be written
+   out twice, which is how the two copies could drift apart. */
+[data-appearance="dark"] .organizer-workspace,
+[data-appearance="dark"] .workspace-theme,
+[data-canvas="dark"] .organizer-workspace {
+  color-scheme: dark;
+  --background: #101013;
+  --dashboard: #0c0c0e;
+  --foreground: #f5f4ef;
+  --surface: #17171a;
+  --muted: #212126;
+  --muted-foreground: #a5a4a0;
+  --border: #2f2f35;
+  --brand-foreground: #18181b;
+  --ring: #dcf91c;
+  --destructive-ink: #fda4af;
+}
+
+/* Routes whose mobile chrome is the workspace tab bar declare its height once,
+   so a floating bar and the page's bottom padding both clear it without
+   hard-coding an offset of their own.
+
+   `HomeSidebar` renders that bar for every organizer route, so every organizer
+   route carries the height — not only the ones that remembered to ask for it.
+   Before, `StyleRail`'s mobile sheet read the unset variable and parked itself
+   under the tab bar on `/create`.
+
+   An invitation opened by a signed-in organizer keeps that chrome too (see
+   `InvitationFrame`): under `lg` it is the tab bar, so it stays visible and the
+   RSVP bar floats on a rail above it. Hiding the tab bar instead left the host
+   with no way back to the dashboard on a phone. */
+.organizer-workspace,
+.invitation-frame,
+.has-bottom-nav {
+  --app-bottom-nav-h: var(--bottom-nav-h);
+  /* Re-derived here, where the height is known: a `--float-offset` read on a
+     descendant of this frame now lifts by the real tab bar. */
+  --float-offset: calc(
+    var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.75rem
+  );
+}
+
+/* A themed screen paints a full-bleed canvas (see `CanvasMode`), so the chrome
+   beside it turns to glass: the canvas runs edge to edge instead of stopping at
+   an opaque rail. This is the sidebar and tab bar reading as part of the page,
+   which is what Partiful's create screen does — and it is only true where a
+   canvas is actually painted, so the workspace's own screens keep their solid
+   chrome.
+
+   It is glass, not a window: the scrim stays heavy enough that the rail is
+   still a surface you can read white glyphs on. Fully transparent chrome over a
+   dark canvas reads as a hole, and the icon column loses its edge. */
+[data-canvas] .organizer-sidebar,
+[data-canvas] .organizer-bottom-nav {
+  background: color-mix(in srgb, var(--dashboard) 84%, transparent);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.workspace-dashboard {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The dashboard used to wash its top edge with a brand-lime radial plus a
+   gradient bleed into the page. It made the brand read as a light leak rather
+   than a surface, so the page is now one flat `--dashboard` colour. */
+.workspace-dashboard::before {
+  display: none;
+  content: "";
+}
+
+body,
+header,
+aside,
+main,
+article,
+section {
+  transition:
+    background-color var(--motion-quick) var(--motion-ease),
+    color var(--motion-quick) var(--motion-ease),
+    border-color var(--motion-quick) var(--motion-ease);
+}
+
+.hero-backdrop-image,
+.hero-backdrop-art {
+  opacity: 0.35;
+}
+
+.hero-backdrop-label {
+  max-width: 100%;
+  color: #18181b;
+  text-shadow: 0 1px 8px rgb(255 255 255 / 90%);
+}
+
+.hero-backdrop-wash {
+  background: radial-gradient(
+    ellipse 55% 42% at 50% 30%,
+    var(--background) 0%,
+    color-mix(in srgb, var(--background) 78%, transparent) 55%,
+    transparent 100%
+  );
+}
+
+main,
+section,
+article,
+aside,
+form,
+[role="dialog"] {
+  min-width: 0;
+}
+
+main :where(.grid > *, .flex > *) {
+  min-width: 0;
+}
+
+main :where(h1, h2, h3, p, a, li) {
+  overflow-wrap: anywhere;
+}
+
+.ev :where(h1, h2, h3, p, label, button) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .word-up {
+    animation: word-up 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  }
+
+  .fade-up {
+    animation: fade-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)
+      var(--d, 0s) both;
+  }
+
+  .float-in {
+    animation:
+      card-in 1s cubic-bezier(0.2, 0.9, 0.3, 1) var(--d, 0s) both,
+      float 6s ease-in-out calc(var(--d, 0s) + 1s) infinite;
+  }
+
+  .marquee {
+    animation: marquee 32s linear infinite;
+  }
+}
+
+@keyframes word-up {
+  from {
+    transform: translateY(105%) rotate(3deg);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.96);
+  }
+}
+
+@keyframes float {
+  50% {
+    translate: 0 -8px;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.drift {
+  background-size: 150% 150%;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    background-position: 0% 0%;
+  }
+
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+.fill-bar {
+  width: 0;
+  animation: fill var(--dur, 3400ms) linear forwards;
+}
+
+@keyframes fill {
+  to {
+    width: 100%;
+  }
+}
+
+/* A themed canvas hanging off the workspace frame (the event dashboard, the
+   door) has to reach the bottom of the page. The frame pads its scroll
+   container for the mobile tab bar; the themed shell already reserves that
+   space itself, so the padding would otherwise cut a strip out of the canvas. */
+.organizer-workspace > main:has(> .ev) {
+  padding-bottom: 0;
+}
+
+/* The workspace paints its own canvas, so the document behind it (overscroll,
+   safe areas) has to match the appearance that is in use. Landing, browse and
+   invitation pages never have a `.organizer-workspace`, so they stay warm
+   off-white regardless of the organizer's preference. */
+html:has(.organizer-workspace),
+body:has(.organizer-workspace) {
+  background-color: #f7f4eb;
+}
+
+html[data-appearance="dark"]:has(.organizer-workspace) {
+  background-color: #0c0c0e;
+  color-scheme: dark;
+}
+
+html[data-appearance="dark"] body:has(.organizer-workspace) {
+  background-color: #0c0c0e;
+}
+
+/* Same for a dark event canvas: the document behind the workspace has to match
+   the themed screen or the overscroll area flashes the light palette. */
+html[data-canvas="dark"]:has(.organizer-workspace) {
+  background-color: #0c0c0e;
+  color-scheme: dark;
+}
+
+html[data-canvas="dark"] body:has(.organizer-workspace) {
+  background-color: #0c0c0e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/*
+  Native pickers we did not replace (the guest row, the RSVP form, the gallery
+  settings) print their list with the OS palette — a white sheet on a dark app,
+  or black text on a dark list. A `<select>`'s popup is drawn by the platform, so
+  the option's own colours are the only lever CSS has here; `Select` itself is a
+  listbox now (`ui/Select.tsx`) and does not use this.
+*/
+select option {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+/*
+  Printing.
+
+  Two screens print: a themed page (an invitation, a guest pass) and the
+  organizer's own lists. On a themed page the artwork, the ambient scene, the
+  film grain and the falling effects are all `aria-hidden` decoration painted at
+  viewport size — ink that means nothing on paper and, on a dark theme, a solid
+  black sheet. They are direct children of the themed root, so one rule removes
+  them without touching the content.
+
+  `[data-pass-sheet]` is the pass card itself. It is forced to paper colours
+  because a pass on a dark theme would otherwise save as a black rectangle; the
+  status chips and the reference keep their own colours through
+  `print-color-adjust`.
+*/
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .ev > [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  [data-pass-sheet] {
+    border: 1px solid #d4d0c6 !important;
+    border-radius: 12px;
+    background: #fff !important;
+    color: #1a1a2e !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    break-inside: avoid;
+  }
+
+  [data-pass-sheet],
+  [data-pass-sheet] * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  [data-pass-sheet] .ev-faint {
+    color: #6b6659 !important;
+  }
+
+  [data-pass-sheet] .ev-muted {
+    color: #4a463c !important;
+  }
+
+  /* The guest's own block is brand-tinted on screen; on paper it becomes the
+     warm sheet tone so a lime wash never covers a third of the page. */
+  [data-pass-sheet] [data-pass-tint] {
+    background: #f7f4eb !important;
+    border-color: #e4e0d6 !important;
+  }
+}
