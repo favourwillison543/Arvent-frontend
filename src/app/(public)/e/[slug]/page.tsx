@@ -44,7 +44,6 @@ export async function generateMetadata({
   }
 
   const url = sitePath(`/e/${event.slug}`);
-  const image = sitePath(`/e/${event.slug}/opengraph-image`);
   const when = passDate(event.date);
   const where = [event.venueName, event.location].filter(Boolean).join(", ");
 
@@ -64,6 +63,11 @@ export async function generateMetadata({
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: false },
+    // `og:image` / `twitter:image` are deliberately not set here: the
+    // `opengraph-image.tsx` file next to this page supplies them. Next hashes the
+    // image route (`/e/<slug>/opengraph-image-<build hash>?<hash>`) so a card is
+    // re-fetched when the poster or the renderer changes, and a hand-built
+    // `/e/<slug>/opengraph-image` URL answers 404 — no card, just a bare link.
     openGraph: {
       type: "website",
       url,
@@ -71,20 +75,11 @@ export async function generateMetadata({
       title: event.name,
       description,
       locale: "en",
-      images: [
-        {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: `${event.name} — ${when}`,
-        },
-      ],
     },
     twitter: {
       card: "summary_large_image",
       title: event.name,
       description,
-      images: [image],
     },
   };
 }

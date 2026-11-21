@@ -20,16 +20,23 @@ import EffectGlyph from "./EffectGlyphs";
      confetti: ["#d9b868", "#ecd9a8", "#cfa896", "#b9a2b8", "#e8e2d6", "#b8944c"],
      money: ["#7fae8c", "#9cc4a6", "#5f946f", "#bcd8c2"],
      balloons: ["#d9bfa8", "#c9a48e", "#b8a0b6", "#a3b6c4"],
+     bubbles: ["#cfe6ff", "#a9d2f2", "#e7f4ff", "#bfe0f8"],
      hearts: ["#d98a94", "#c9788a", "#e6b0b6", "#b8687a"],
+     kisses: ["#e791a6", "#d97b93", "#f2b6c6", "#c96885"],
      music: ["#b8a2d6", "#98b4c6", "#c9a88e", "#c8b480"],
      stars: ["#ecd9a8", "#f6e8c6", "#d9b868", "#f4efe4"],
+     sparks: ["#ffc26b", "#ffdc9c", "#ff9d4d", "#ffe9c2"],
      sparkle: ["#f6e8c6", "#ecd9a8", "#f4efe4", "#e8cdc0"],
      petals: ["#e8c0c4", "#d9a4ae", "#f0d6d8", "#d4b0c4"],
+     blossom: ["#f4c8d4", "#e8aebe", "#fbe4ea", "#dcb6c8"],
      leaves: ["#b8744a", "#a05a38", "#c9964c", "#885038"],
      snow: ["#f4f6fa", "#dde8f6", "#c8d8ee"],
      bats: ["#6f6a82", "#5a5570", "#8a85a0"],
      ghosts: ["#dcdaea", "#c8c4dc", "#e6e4f2"],
      spiders: ["#a8a3b8", "#8f8aa6", "#b87a4a"],
+     streamers: ["#e8b6c2", "#b9c8e8", "#e8d9a8", "#bfe0c8"],
+     diamonds: ["#dfe9f4", "#c8d6e6", "#f2f7ff", "#b8c9dd"],
+     rain: ["#b8cadd", "#9fb4cc", "#d5e2ee"],
    };
    
    /* Three quiet bursts instead of six. */
@@ -197,17 +204,19 @@ import EffectGlyph from "./EffectGlyphs";
          : def.motion === "float"
            ? "drift"
            : def.motion;
-     // Fewer pieces: the screen should feel dressed, not busy.
+     // Enough pieces that the effect reads at a glance. The old 9-18 pieces were
+     // spread so thin over a wide screen that a phone showed two or three of
+     // them, which read as a broken effect rather than a quiet one.
      const count =
-       kind === "fall" ? 16 : kind === "rise" ? 12 : kind === "twinkle" ? 18 : 9;
+       kind === "fall" ? 26 : kind === "rise" ? 20 : kind === "twinkle" ? 28 : 16;
      const r = rng(id.length * 97 + 13);
    
      return (
        <div aria-hidden className={layer}>
          {Array.from({ length: count }, (_, i) => {
            const depth = r(); // 0 = far away, 1 = right in front
-           // Small pieces (10-26px): far ones are tiny and soft, near ones larger.
-           const size = Math.round(9 + Math.pow(depth, 1.4) * 17);
+           // Pieces big enough to actually see: 16px far away, 46px up close.
+           const size = Math.round(16 + Math.pow(depth, 1.25) * 30);
            const x = (r() * 100).toFixed(1);
            const y = (r() * 86).toFixed(1);
            // Slower, calmer movement.
@@ -239,10 +248,10 @@ import EffectGlyph from "./EffectGlyphs";
              opacity:
                kind === "twinkle"
                  ? undefined
-                 : Number((0.3 + depth * 0.45).toFixed(2)),
+                 : Number((0.42 + depth * 0.5).toFixed(2)),
              // Depth of field: distant and very close pieces are soft.
              filter:
-               depth < 0.28 ? "blur(1.6px)" : depth > 0.9 ? "blur(2.2px)" : undefined,
+               depth < 0.28 ? "blur(1.2px)" : depth > 0.9 ? "blur(1.8px)" : undefined,
              animationDuration: `${dur.toFixed(1)}s`,
              animationDelay: `${delay.toFixed(1)}s`,
            };
@@ -261,7 +270,7 @@ import EffectGlyph from "./EffectGlyphs";
                  className="evx-in"
                  style={
                    {
-                     "--sway": `${Math.round(8 + r() * 20)}px`,
+                     "--sway": `${Math.round(10 + r() * 26)}px`,
                      "--rot": `${Math.round(6 + r() * 14)}deg`,
                      animationDuration: `${swayDur.toFixed(1)}s`,
                      animationDelay: `${(-r() * swayDur).toFixed(1)}s`,

@@ -17,12 +17,13 @@ const order: MomentKind[] = ["save-the-date", "announcement", "milestone", "than
 export default function MomentsStart() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      {/* The fixed marketing navbar is 72px tall, so this page's opening gap is
-          measured from it rather than from the shared page rhythm: `pt-12` plus
-          the hero's own `mt-8` puts the headline's cap height just under the
-          bar. The column, the gutters and the measure come from `PageLayout`,
-          which is the only thing applying padding here — `main` used to add its
-          own `px-4` on top of `Container`'s. */}
+      {/* The fixed marketing navbar is ~68px tall (40px of content between its
+          `pt-3` and `pb-4`), so this page's opening gap is measured from it
+          rather than from the shared page rhythm: `pt-12` plus the hero's own
+          `mt-8` puts the headline's cap height just under the bar. The column,
+          the gutters and the measure come from `PageLayout`, which is the only
+          thing applying padding here — `main` used to add its own `px-4` on top
+          of `Container`'s. */}
       <main>
         <PageLayout width="page" top="none" className="pb-20 pt-12 sm:pt-16">
           <div className="mx-auto mt-8 max-w-2xl text-center sm:mt-10">

@@ -8,6 +8,7 @@ import {
 import Providers from "./providers";
 import { CreateDraftProvider } from "@/components/create-event/CreateDraftProvider";
 import { AppToaster } from "@/components/theme/AppToaster";
+import { SITE_URL } from "@/lib/site";
 import { appearanceInitScript } from "@/lib/theme/appearance";
 
 import "./globals.css";
@@ -35,6 +36,9 @@ const instrument = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  // Relative metadata URLs (canonical links, share images) resolve against this,
+  // so a crawler never gets `http://localhost:3000` in a production tag.
+  metadataBase: new URL(SITE_URL),
   title: "Arvent",
   description:
     "Create invitations for parties, birthdays, weddings, and gatherings, manage RSVPs, and know who actually shows up.",

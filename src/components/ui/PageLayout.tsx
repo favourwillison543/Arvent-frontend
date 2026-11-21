@@ -39,7 +39,10 @@ import {
 export type PageWidth = "page" | "event" | "reading" | "narrow";
 
 const COLUMNS: Record<PageWidth, string> = {
-  /** The default column: the 90% width every screen shares. */
+  /**
+   * The default column: the width every screen shares — the full viewport on a
+   * phone, 95% from `sm` up, with the shared gutters inside both.
+   */
   page: PAGE_BODY,
   /** The event column — the same measure across create, preview, dashboard, invitation. */
   event: EVENT_BODY,

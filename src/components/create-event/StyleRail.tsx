@@ -177,23 +177,30 @@ export default function StyleRail({
             <>
               <h3 className="font-display text-lg font-bold">Effect</h3>
 
-              <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+              {/* Bigger, fewer columns: the swatch used to be a fixed `4rem`
+                  circle inside a `p-3` tile, so on a phone it was wider than the
+                  tile it sat in (the circles touched each other) and on a wide
+                  panel it looked lost in a sea of card. The swatch now fills its
+                  column and the artwork is a percentage of that circle, so every
+                  tile reads at any width. */}
+              <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8">
                 {effects.map((e) => (
                   <button
                     key={e.id}
                     type="button"
+                    title={e.name}
                     aria-pressed={draft.effectId === e.id}
                     data-on={draft.effectId === e.id}
                     onClick={() => update("effectId", e.id)}
-                    className="ev-sel flex min-w-0 flex-col items-center gap-2 rounded-panel border border-border bg-surface p-3 text-center text-xs font-semibold backdrop-blur-sticky transition-colors"
+                    className="ev-sel flex min-w-0 flex-col items-center gap-2 rounded-panel border border-border bg-surface px-2 py-2.5 text-center text-xs font-semibold backdrop-blur-sticky transition-colors"
                   >
                     <span
-                      className="flex size-16 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,.22),transparent_52%),linear-gradient(145deg,#392248,#12111a)] text-brand"
+                      className="grid aspect-square w-full place-items-center rounded-full bg-[radial-gradient(circle_at_32%_22%,rgba(255,255,255,.3),transparent_56%),linear-gradient(145deg,#4b2f5d,#1a1722)] p-[16%] text-brand shadow-inner ring-1 ring-white/10"
                       aria-hidden
                     >
-                      <DesignerArtwork name={e.icon} className="size-10" />
+                      <DesignerArtwork name={e.icon} className="size-full" />
                     </span>
-                    {e.name}
+                    <span className="w-full truncate leading-tight">{e.name}</span>
                   </button>
                 ))}
               </div>

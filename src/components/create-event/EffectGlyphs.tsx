@@ -102,7 +102,8 @@
            </Svg>
          );
        case "stars":
-       case "sparkle": {
+       case "sparkle":
+       case "sparks": {
          const big = i % 3 !== 2;
          return (
            <Svg>
@@ -115,6 +116,7 @@
          );
        }
        case "petals":
+       case "blossom":
          return (
            <Svg>
              <defs>{lin("p", light, dark, 0, 1)}</defs>
@@ -196,6 +198,75 @@
              <circle cx="12" cy="12" r="8.4" fill={`url(#r-c-${k})`} />
              <circle cx="12" cy="12" r="6.2" fill="none" stroke="#fff" strokeOpacity=".4" strokeWidth=".6" />
              <path d="M12,8 L15,12 L12,16 L9,12Z" fill="#fff" fillOpacity=".4" />
+           </Svg>
+         );
+       case "bubbles": {
+         // Glossy spheres: a lit rim, a see-through body and one highlight.
+         const r0 = 5.2 + (i % 4) * 1.7;
+         return (
+           <Svg>
+             <defs>{rad("bu", light, color, dark)}</defs>
+             <circle cx="12" cy="12" r={r0} fill={`url(#r-bu-${k})`} fillOpacity=".72" />
+             <circle cx="12" cy="12" r={r0} fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth=".8" />
+             <ellipse
+               cx={12 - r0 * 0.36}
+               cy={12 - r0 * 0.42}
+               rx={r0 * 0.3}
+               ry={r0 * 0.2}
+               fill="#fff"
+               fillOpacity=".62"
+               transform={`rotate(-32 ${12 - r0 * 0.36} ${12 - r0 * 0.42})`}
+             />
+           </Svg>
+         );
+       }
+       // Streamers are always the same long curl, only the hue changes, so they
+       // read as ribbons rather than as confetti squares.
+       case "streamers":
+         return (
+           <Svg>
+             <defs>{lin("st", light, dark, 0, 1)}</defs>
+             <path
+               d={i % 2 ? "M8,2 C19,7 5,14 16,22" : "M16,2 C5,7 19,14 8,22"}
+               fill="none"
+               stroke={`url(#g-st-${k})`}
+               strokeWidth="3.4"
+               strokeLinecap="round"
+             />
+             <path
+               d={i % 2 ? "M8,2 C19,7 5,14 16,22" : "M16,2 C5,7 19,14 8,22"}
+               fill="none"
+               stroke="#fff"
+               strokeOpacity=".32"
+               strokeWidth=".8"
+               transform="translate(-.6 0)"
+             />
+           </Svg>
+         );
+       case "diamonds":
+         return (
+           <Svg>
+             <defs>{lin("di", light, dark, 0, 1)}</defs>
+             <path d="M12,1.6 L20.6,9.2 L12,22.4 L3.4,9.2Z" fill={`url(#g-di-${k})`} />
+             <path
+               d="M12,1.6 L3.4,9.2 L20.6,9.2 L12,22.4Z"
+               fill="none"
+               stroke="#fff"
+               strokeOpacity=".45"
+               strokeWidth=".6"
+             />
+             <path d="M12,1.6 L12,9.2 L3.4,9.2Z" fill="#fff" fillOpacity=".28" />
+           </Svg>
+         );
+       case "rain":
+         return (
+           <Svg>
+             <defs>{lin("rn", light, dark, 0, 1)}</defs>
+             <path
+               d="M12,2 C12,2 5.4,9.8 5.4,14.6 C5.4,18.3 8.4,21.2 12,21.2 C15.6,21.2 18.6,18.3 18.6,14.6 C18.6,9.8 12,2 12,2Z"
+               fill={`url(#g-rn-${k})`}
+             />
+             <ellipse cx="9.6" cy="15.2" rx="1.1" ry="1.9" fill="#fff" fillOpacity=".55" />
            </Svg>
          );
        default:
