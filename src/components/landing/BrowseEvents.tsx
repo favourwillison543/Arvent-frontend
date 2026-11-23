@@ -1,122 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import Container from "@/components/ui/Container";
+import { fmtDate, fmtTime } from "@/components/create-event/format";
+import { useDiscoverEvents } from "@/hooks/useDiscoverEvents";
 import { useInView } from "@/hooks/useInView";
+import type { PublicEvent } from "@/lib/api/public";
 import Button from "../ui/Button";
 
-type Row = [
-  slug: string,
-  title: string,
-  date: string,
-  area: string,
-  interested: number,
-];
+import { SECTION_HEADING } from "./type";
 
-const cityEvents: Record<string, Row[]> = {
-  Lagos: [
-    ["owambe-nights", "Owambe Nights", "Sat, Oct 17 at 7pm", "Lekki", 1248],
-    [
-      "sunday-brunch",
-      "Sunday Brunch",
-      "Sun, Oct 11 at 12pm",
-      "Victoria Island",
-      640,
-    ],
-    [
-      "rooftop-house-party",
-      "Rooftop House Party",
-      "Sat, Oct 10 at 9pm",
-      "Yaba",
-      985,
-    ],
-    [
-      "graduation-dinner",
-      "Graduation Dinner",
-      "Fri, Oct 16 at 6pm",
-      "Ikeja",
-      382,
-    ],
-    [
-      "naming-ceremony",
-      "Naming Ceremony",
-      "Sat, Oct 24 at 11am",
-      "Surulere",
-      520,
-    ],
-    ["bridal-shower", "Bridal Shower", "Sun, Oct 25 at 2pm", "Ikoyi", 421],
-  ],
-  Abuja: [
-    ["abuja-owambe", "Owambe Weekend", "Sat, Oct 17 at 6pm", "Wuse 2", 860],
-    [
-      "abuja-dinner",
-      "Rooftop Dinner Party",
-      "Fri, Oct 16 at 8pm",
-      "Maitama",
-      410,
-    ],
-    [
-      "abuja-wedding",
-      "Traditional Wedding",
-      "Sat, Oct 24 at 10am",
-      "Gwarinpa",
-      1120,
-    ],
-    [
-      "abuja-birthday",
-      "30th Birthday Party",
-      "Sat, Oct 10 at 7pm",
-      "Garki",
-      350,
-    ],
-    ["abuja-brunch", "Garden Brunch", "Sun, Oct 18 at 11am", "Jabi", 295],
-    [
-      "abuja-housewarming",
-      "Housewarming",
-      "Sat, Oct 31 at 4pm",
-      "Asokoro",
-      180,
-    ],
-  ],
-  "Port Harcourt": [
-    ["ph-owambe", "Owambe Night", "Fri, Oct 23 at 7pm", "Trans Amadi", 700],
-    ["ph-beach", "Beach Day Party", "Sat, Oct 17 at 2pm", "GRA", 530],
-    [
-      "ph-graduation",
-      "Graduation Party",
-      "Sat, Oct 24 at 5pm",
-      "Rumuokoro",
-      310,
-    ],
-    ["ph-dinner", "Seafood Dinner", "Fri, Oct 16 at 8pm", "Old GRA", 275],
-    ["ph-naming", "Naming Ceremony", "Sat, Oct 10 at 11am", "Rumuola", 240],
-    ["ph-bridal", "Bridal Shower", "Sun, Oct 18 at 2pm", "Woji", 220],
-  ],
-  Ibadan: [
-    [
-      "ib-engagement",
-      "Yoruba Engagement",
-      "Sat, Oct 17 at 10am",
-      "Bodija",
-      940,
-    ],
-    ["ib-owambe", "Owambe Saturday", "Sat, Oct 24 at 4pm", "Jericho", 610],
-    ["ib-party", "House Party", "Sat, Oct 10 at 9pm", "Agodi", 420],
-    [
-      "ib-graduation",
-      "Graduation Dinner",
-      "Fri, Oct 16 at 6pm",
-      "Ring Road",
-      260,
-    ],
-    ["ib-baby", "Baby Shower", "Sat, Oct 31 at 2pm", "Oluyole", 205],
-    ["ib-brunch", "Sunday Brunch", "Sun, Oct 11 at 12pm", "Akobo", 190],
-  ],
+/**
+ * One card, whichever feed it came from.
+ *
+ * `interested` is `null` when nobody told us: the public list carries no
+ * attendance count, and a number invented for the marketing page is exactly the
+ * fake data this section used to be made of. Only the two placeholders below
+ * print a figure.
+ */
+type Card = {
+  /** The React key: the event's own id, or the placeholder's own name. */
+  id: string;
+  title: string;
+  date: string;
+  area: string;
+  interested: number | null;
+  poster: string;
+  /** A real invitation, or `/discover` for a placeholder that has no event. */
+  href: string;
 };
 
-const cities = Object.keys(cityEvents);
+/**
+ * The chips — the same five the Discover page offers, `All cities` first. The
+ * landing used to hide that option and force a city, so a reader with no event
+ * near them never saw the rest of the feed.
+ */
+const CITIES = [
+  "All cities",
+  "Lagos",
+  "Abuja",
+  "Port Harcourt",
+  "Ibadan",
+] as const;
+
+type City = (typeof CITIES)[number];
+
+const ALL_CITIES: City = CITIES[0];
 
 /**
  * Local poster art. The card images used to point at an external placeholder
@@ -164,6 +95,69 @@ export function posterFor(slug: string) {
   return POSTERS[hash];
 }
 
+/**
+ * Two cards for a cold start — the only invented events left on this page.
+ *
+ * This section used to be twenty-four made-up events across four cities, with
+ * made-up attendance numbers, every one of them linking to an invitation that
+ * never existed. It now reads the same public feed Discover does. These two stay
+ * so the strip is not an empty hole on a day nobody has published anything —
+ * and because there is no event behind them, they point at `/discover` instead
+ * of a dead `/e/` link.
+ */
+const PLACEHOLDERS: Card[] = [
+  {
+    id: "placeholder-owambe",
+    title: "Owambe Nights",
+    date: "Sat, Oct 17 at 7pm",
+    area: "Lekki, Lagos",
+    interested: 1248,
+    poster: posterFor("owambe-nights"),
+    href: "/discover",
+  },
+  {
+    id: "placeholder-brunch",
+    title: "Sunday Brunch",
+    date: "Sun, Oct 11 at 12pm",
+    area: "Victoria Island, Lagos",
+    interested: 640,
+    poster: posterFor("sunday-brunch"),
+    href: "/discover",
+  },
+];
+
+/** A published invitation, said in the card's vocabulary. */
+function toCard(event: PublicEvent): Card {
+  const time = event.programStartTime ? fmtTime(event.programStartTime) : "";
+
+  return {
+    id: event.id,
+    title: event.name,
+    date: [fmtDate(event.date), time].filter(Boolean).join(" at "),
+    area: event.venueName || event.location,
+    // The public list carries no attendance count, so the card says what it
+    // knows instead of printing a number nobody can back up.
+    interested: null,
+    poster: event.imageUrl || posterFor(event.slug),
+    href: `/e/${event.slug}`,
+  };
+}
+
+/**
+ * The city match Discover uses. There is no `city` column (PRD v2.2 is
+ * `venueName` plus a free-text `location`), so a chip matches what the host
+ * typed: a host who writes "12 Admiralty Way, Lekki, Lagos" is found by the
+ * Lagos chip, one who writes only "Lekki" is not. Duplicated on purpose — the
+ * marketing page should not reach into the workspace screen for a filter.
+ */
+function inCity(event: PublicEvent, city: string) {
+  if (city === ALL_CITIES) return true;
+
+  const place = `${event.venueName ?? ""} ${event.location ?? ""}`.toLowerCase();
+
+  return place.includes(city.toLowerCase());
+}
+
 function Star({ on }: { on: boolean }) {
   return (
     <svg
@@ -203,26 +197,52 @@ export default function BrowseEvents() {
     threshold: 0.1,
   });
 
-  const [city, setCity] = useState(cities[0]);
+  const [city, setCity] = useState<City>(ALL_CITIES);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
 
-  const rows = cityEvents[city];
+  const feed = useDiscoverEvents();
+  const events = feed.data;
+
+  /**
+   * Real invitations first. The two placeholders only fill a feed that answered
+   * and had nothing at all in it — a city that is merely quiet gets the honest
+   * line under the grid instead, because a Lagos invitation shown under the
+   * Abuja chip would be the same lie this section used to tell.
+   */
+  const rows = useMemo(() => {
+    const all = events ?? [];
+    const inTown = all.filter((event) => inCity(event, city)).map(toCard);
+
+    if (inTown.length) return inTown;
+
+    return feed.isSuccess && all.length === 0 ? PLACEHOLDERS : [];
+  }, [events, city, feed.isSuccess]);
+
+  const quiet = feed.isSuccess && (events?.length ?? 0) > 0 && rows.length === 0;
+
+  /**
+   * "All cities" is not a place, so the copy that names one only fires for the
+   * other chips. It is also the default: a reader who lands here has not told us
+   * where they are, and hiding the whole feed behind a guess is worse than
+   * showing it.
+   */
+  const showCity = city !== ALL_CITIES;
   const citySlug = city.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <section id="browse-events" ref={section} className="w-full py-16 sm:py-24">
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <h2 className="font-display text-[clamp(2.2rem,5vw,3.05rem)] font-bold leading-[1.02] tracking-[-0.035em]">
-            Find events to attend in{" "}
+          <h2 className={SECTION_HEADING}>
+            Find events to attend{" "}
             <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
-              {city}.
+              {showCity ? `in ${city}.` : "anywhere."}
             </span>
           </h2>
 
           <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-            Public events from hosts on Arvent. Pick your city, tap one you
-            like, and RSVP.
+            Public events from hosts on Arvent — every city, or the one you
+            pick. Tap one you like, and RSVP.
           </p>
 
           <div
@@ -230,7 +250,7 @@ export default function BrowseEvents() {
             aria-label="Choose a city"
             className="mt-7 flex flex-wrap justify-center gap-2"
           >
-            {cities.map((c) => {
+            {CITIES.map((c) => {
               const active = c === city;
 
               return (
@@ -254,13 +274,12 @@ export default function BrowseEvents() {
         </div>
 
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4">
-          {rows.map(([slug, title, date, area, interested], index) => {
-            const on = !!saved[slug];
-            const count = interested + (on ? 1 : 0);
+          {rows.map((card, index) => {
+            const on = !!saved[card.id];
 
             return (
               <div
-                key={slug}
+                key={card.id}
                 className={`group relative flex min-h-34 overflow-hidden rounded-panel border border-border bg-surface text-foreground transition-all duration-700 ease-out hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(24,24,27,0.08)] motion-reduce:transition-none ${
                   seen
                     ? "translate-y-0 opacity-100"
@@ -273,7 +292,7 @@ export default function BrowseEvents() {
                 <div className="relative min-h-32 w-30 shrink-0 self-stretch overflow-hidden bg-muted sm:w-34">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={posterFor(slug)}
+                    src={card.poster}
                     alt=""
                     loading="lazy"
                     onError={(event) => {
@@ -287,22 +306,24 @@ export default function BrowseEvents() {
                   <div>
                     <h3 className="line-clamp-2 font-display text-base font-bold leading-tight tracking-[-0.01em] sm:text-lg">
                       <Link
-                        href={`/e/${slug}`}
-                        aria-label={`View ${title}`}
+                        href={card.href}
+                        aria-label={`View ${card.title}`}
                         className="after:absolute after:inset-0 focus-visible:outline-none"
                       >
-                        {title}
+                        {card.title}
                       </Link>
                     </h3>
 
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {date} · {area}
+                      {[card.date, card.area].filter(Boolean).join(" · ")}
                     </p>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="text-xs text-muted-foreground">
-                      {count.toLocaleString()} Interested
+                      {card.interested === null
+                        ? "Open to RSVP"
+                        : `${(card.interested + (on ? 1 : 0)).toLocaleString()} Interested`}
                     </span>
 
                     <button
@@ -310,11 +331,11 @@ export default function BrowseEvents() {
                       aria-pressed={on}
                       aria-label={`${
                         on ? "Remove interest in" : "Mark interested in"
-                      } ${title}`}
+                      } ${card.title}`}
                       onClick={() =>
                         setSaved((current) => ({
                           ...current,
-                          [slug]: !current[slug],
+                          [card.id]: !current[card.id],
                         }))
                       }
                       className={`relative z-10 flex size-8 items-center justify-center rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
@@ -332,13 +353,26 @@ export default function BrowseEvents() {
           })}
         </div>
 
+        {quiet && (
+          <p className="mx-auto mt-6 max-w-md text-center text-sm text-muted-foreground">
+            No public events in {city} yet. Every city is on the{" "}
+            <Link
+              href="/discover"
+              className="font-semibold text-foreground underline underline-offset-4"
+            >
+              Discover page
+            </Link>
+            .
+          </p>
+        )}
+
         <div className="mt-10 flex justify-center">
           <Button
-            href={`/discover?city=${citySlug}`}
+            href={showCity ? `/discover?city=${citySlug}` : "/discover"}
             variant="secondary"
             size="lg"
           >
-            Browse all events in {city}
+            {showCity ? `Browse all events in ${city}` : "Browse all events"}
           </Button>
         </div>
       </Container>

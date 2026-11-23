@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Search, ShieldOff, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

@@ -6,6 +6,7 @@ import {
   GUTTERS,
   PAGE_BODY,
   READING_BODY,
+  WIDE_BODY,
 } from "./Container";
 
 /**
@@ -36,7 +37,7 @@ import {
  * canvas reserves its own. A second one at this level is the double padding this
  * component exists to delete.
  */
-export type PageWidth = "page" | "event" | "reading" | "narrow";
+export type PageWidth = "page" | "event" | "reading" | "wide" | "narrow";
 
 const COLUMNS: Record<PageWidth, string> = {
   /**
@@ -48,6 +49,14 @@ const COLUMNS: Record<PageWidth, string> = {
   event: EVENT_BODY,
   /** A reading column, capped for settings and other read-mostly screens. */
   reading: READING_BODY,
+  /**
+   * The organizer home's column, opened a step wider on large screens. `discover`
+   * renders on it too: the two screens sit in the same frame, behind the same
+   * sidebar, and a feed that centred itself in a 1024px column while `/home`
+   * started at the sidebar's edge read as a different app. One column, so a card
+   * starts on the same x whichever of the two you are on.
+   */
+  wide: WIDE_BODY,
   /** One narrow column, capped at 576px: the door list, a single-column editor. */
   narrow: `mx-auto w-full max-w-xl ${GUTTERS}`,
 };

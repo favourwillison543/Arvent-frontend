@@ -6,6 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 import ThemeShell from "@/components/create-event/ThemeShell";
 import { defaultDraft } from "@/components/create-event/draft";
 import { fonts } from "@/components/create-event/themes";
+import { HERO_SIZE } from "@/components/landing/type";
 import { Avatar } from "@/components/ui/Avatar";
 
 import { dotDate, kinds, longDate, type Moment } from "./data";
@@ -25,11 +26,19 @@ export default function MomentView({
   moment: m,
   stat,
   inviteHref,
+  heroTitle = false,
   children,
 }: {
   moment: Moment;
   stat?: number | null;
   inviteHref?: string;
+  /**
+   * Draw the title at the landing hero's size. Only the published Moment page
+   * (`/m/[id]`) asks for it — the editor's live preview renders the same
+   * component in a narrow pane, where hero type would swamp the card above it.
+   * Size only: the title still wears the font the host picked.
+   */
+  heroTitle?: boolean;
   children?: ReactNode;
 }) {
   const font = fonts.find((f) => f.id === m.fontId) ?? fonts[0];
@@ -66,7 +75,11 @@ export default function MomentView({
           </p>
 
           <h1
-            className={`mm-a break-words text-4xl leading-[1.02] tracking-[-0.02em] sm:text-5xl ${font.className}`}
+            className={`mm-a break-words ${
+              heroTitle
+                ? HERO_SIZE
+                : "text-4xl leading-[1.02] tracking-[-0.02em] sm:text-5xl"
+            } ${font.className}`}
             style={delay()}
           >
             {title}

@@ -48,7 +48,7 @@ export default function MomentPage() {
   };
 
   return (
-    <MomentView moment={moment}>
+    <MomentView moment={moment} heroTitle>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" onClick={share}>
           {done === "link" ? "Link copied" : "Share"}

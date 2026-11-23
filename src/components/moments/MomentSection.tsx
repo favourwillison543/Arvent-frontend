@@ -4,6 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 
 import Link from "next/link";
 
+import { SECTION_HEADING } from "@/components/landing/type";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import { useInView } from "@/hooks/useInView";
@@ -39,7 +40,7 @@ export default function MomentsSection() {
     <section id="moments" ref={section} className="py-10 sm:py-16">
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <h2 className="font-display text-[clamp(2.2rem,5vw,3.05rem)] font-bold leading-[1.02] tracking-[-0.035em] text-poster-ink">
+          <h2 className={`${SECTION_HEADING} text-poster-ink`}>
             Some news doesn&apos;t need an{" "}
             <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
               RSVP.

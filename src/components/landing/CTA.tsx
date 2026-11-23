@@ -6,6 +6,8 @@ import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import { useInView } from "@/hooks/useInView";
 
+import { SECTION_HEADING } from "./type";
+
 const invites = [
   { x: -90, y: -64, r: -10, band: "#e8c878" },
   { x: 0, y: -94, r: 0, band: "#c9b2e6" },
@@ -67,7 +69,7 @@ export default function CTA() {
 
       <Container>
         <div className="relative z-10 flex flex-col items-center text-center">
-          <h2 className="max-w-3xl font-display text-[clamp(2.2rem,5vw,3.05rem)] font-bold leading-[1.02] tracking-[-0.035em]">
+          <h2 className={`max-w-3xl ${SECTION_HEADING}`}>
             Your next event deserves more than a{" "}
             <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
               group chat.

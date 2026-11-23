@@ -1,10 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import type { EventDraft } from "@/components/create-event/draft";
 import { RsvpGlyph, rsvpValues } from "@/components/create-event/rsvpSymbols";
-import { rsvpOptions } from "@/components/create-event/RsvpCircles";
 import FloatingBar from "@/components/ui/FloatingBar";
 
 /**
@@ -48,51 +47,85 @@ export function RsvpPrompt({
   );
 }
 
-/** The choice row a phone gets — pills, because circles do not fit up there. */
-export function RsvpPills({
+/**
+ * The row a phone gets, and the only thing in the bar: `RSVP | Interested` in
+ * one dark plate, separated by a hairline — the reference's shape. Two plain
+ * text actions on a shared surface, not two pills inside a pill: there is no
+ * button chrome to compete with the invitation behind it.
+ *
+ * The glyphs are the host's own (`rsvpValues`), so a Bloom event shows a flower
+ * and a bud where a Classic one shows a check and a clock — the bar is the same
+ * control, in the event's language. "Interested" is the sheet's `maybe` answer;
+ * "Can't go" stays in the sheet, where a decline that needs a name belongs.
+ */
+export function RsvpActions({
   draft,
+  size = "sm",
   chosen = null,
   onSelect,
 }: {
   draft: EventDraft;
+  /**
+   * `sm` is the row inside the phone bar; `lg` is the same control on the
+   * desktop card, where it carries its own plate and a bigger tap height.
+   */
+  size?: "sm" | "lg";
   chosen?: string | null;
   onSelect: (value: string) => void;
 }) {
   const values = rsvpValues(draft);
+  const big = size === "lg";
+
+  const actions = [
+    { value: "going", label: "RSVP", glyph: values.rsvpGoing },
+    { value: "maybe", label: "Interested", glyph: values.rsvpMaybe },
+  ];
 
   return (
-    <div className="flex gap-2">
-      {rsvpOptions(draft).map((option) => {
-        const on = chosen === option.value;
+    <div
+      className={`flex w-full items-stretch ${
+        big ? "ev-plate mx-auto max-w-sm rounded-full px-2" : ""
+      }`}
+      /* One fill for both screens: `ev-plate` (theme.css) paints the
+         invitation's own ink, a little darker towards the bottom — off-white on
+         a dark invitation, near-black on a cream one. The bar on a phone carries
+         the same class, so the control cannot come out light on one screen and
+         dark on the next. `--inv` is the ink's opposite, i.e. the label colour
+         on that plate. */
+      style={big ? { color: "var(--inv)" } : undefined}
+    >
+      {actions.map((action, index) => {
+        const on = chosen === action.value;
 
         return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onSelect(option.value)}
-            className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border text-sm font-semibold transition active:scale-95"
-            style={
-              on
-                ? {
-                    background: "var(--ink)",
-                    color: "var(--inv)",
-                    borderColor: "var(--ink)",
-                  }
-                : {
-                    background: "var(--ev-surface)",
-                    color: "var(--ink)",
-                    borderColor: "var(--line)",
-                  }
-            }
-          >
-            <RsvpGlyph
-              mode={draft.rsvpMode}
-              value={values[option.key]}
-              size={18}
-            />
-            <span className="truncate">{option.label}</span>
-          </button>
+          <Fragment key={action.value}>
+            {index > 0 && (
+              <span
+                aria-hidden
+                className={`w-px shrink-0 ${big ? "my-3" : "my-2"}`}
+                style={{
+                  background:
+                    "color-mix(in srgb, currentColor 30%, transparent)",
+                }}
+              />
+            )}
+
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={() => onSelect(action.value)}
+              className={`flex min-w-0 flex-1 items-center justify-center font-semibold transition active:opacity-60 ${
+                big ? "h-11 gap-2 text-[15px]" : "h-9 gap-1.5 text-[13px]"
+              } ${chosen && !on ? "opacity-50" : "opacity-100"}`}
+            >
+              <RsvpGlyph
+                mode={draft.rsvpMode}
+                value={action.glyph}
+                size={big ? 18 : 15}
+              />
+              <span className="truncate">{action.label}</span>
+            </button>
+          </Fragment>
         );
       })}
     </div>
@@ -102,7 +135,7 @@ export function RsvpPills({
 /**
  * The fixed bar under the invitation on phones.
  *
- * It is a `FloatingBar` panel: the dock (bottom offset, z-ladder, centring) is
+ * It is a `FloatingBar`: the dock (bottom offset, z-ladder, centring) is
  * the shared one, and only the skin and the stack of content are this screen's.
  * Before, it computed the offset itself — `--app-bottom-nav-h` with a hard-coded
  * `4.25rem` fallback and its own `z-30` — which meant it was the one bar in the
@@ -110,13 +143,39 @@ export function RsvpPills({
  * height. `bottom-float` falls back to zero and takes its height from the frames
  * that actually draw the bar (`.invitation-frame`, `.has-bottom-nav`).
  *
+ * Its fill is the theme's ink, not the page's glass: near-black on a cream
+ * invitation, cream on a dark one, with the labels in the inverse so the answer
+ * is legible before it is read. `tone="solid"` is what makes it opaque — the
+ * glass `surface` skin would let the poster read straight through the words —
+ * and `ev-invert-scope` / `ev-invert` (theme.css) swap the tokens underneath it,
+ * so the glyphs, the labels and the hairline between them come out inverted
+ * without any of them knowing where they are drawn. A bar that borrowed the
+ * page's palette would have been the one control on the invitation that
+ * disappeared into the artwork — which is why the invitation's own RSVP card can
+ * be translucent and this one cannot.
+ *
+ * `shape="bar"` because it holds one row — `RSVP | Interested`, the reference's
+ * plate — and because that shape is the narrow one: a pill wide enough for a
+ * sentence ran from one edge of a phone to the other, so the control was as
+ * wide as the screen it was floating on. Stacking a caption over a row (the old
+ * `panel`) made the bar a card that happened to float; a bar is a control.
+ *
+ * `ev-plate` (theme.css) is the fill: the inverse, darkened a little top to
+ * bottom, so the plate is a surface in both themes instead of a flat white
+ * sticker on a dark invitation and a flat black one on a cream invitation.
+ *
  * `lg:hidden` lives on the wrapper, not in the component: above the breakpoint
  * the RSVP card is drawn inline in the page, so there is nothing to float.
  */
 export function RsvpBar({ children }: { children: ReactNode }) {
   return (
-    <div className="lg:hidden">
-      <FloatingBar shape="panel" label="Your RSVP">
+    <div className="ev-invert-scope lg:hidden">
+      <FloatingBar
+        shape="bar"
+        tone="solid"
+        label="Your RSVP"
+        className="ev-invert ev-plate"
+      >
         {children}
       </FloatingBar>
     </div>

@@ -7,9 +7,9 @@ import { Icon } from "@/components/ui/Icon";
 import type { EventDraft } from "@/components/create-event/draft";
 import RsvpCircles from "@/components/create-event/RsvpCircles";
 import { RSVPStatus } from "./RSVPStatus";
-import { GuestPass, passHref } from "./GuestPass";
+import { GuestPass } from "./GuestPass";
 import { ThemedRsvpForm } from "./ThemedRsvpForm";
-import { RsvpBar, RsvpPills, RsvpPrompt, rsvpPrompt } from "./RsvpBlock";
+import { RsvpActions, RsvpBar, RsvpPrompt, rsvpPrompt } from "./RsvpBlock";
 
 type PanelProps = {
   draft: EventDraft;
@@ -68,9 +68,12 @@ export function RsvpPanel(props: PanelProps) {
         <>
           <RsvpPrompt rsvpAccess={rsvpAccess} />
 
-          <RsvpCircles
+          {/* The same `RSVP | Interested` control the phone bar carries, a size
+              up: the invitation makes one offer on both screens, and the sheet
+              under it is where a decline and its name are collected. */}
+          <RsvpActions
             draft={draft}
-            big
+            size="lg"
             chosen={chosen}
             onSelect={onSelect}
           />
@@ -92,34 +95,24 @@ export function RsvpPanel(props: PanelProps) {
   );
 }
 
+/**
+ * The phone bar's contents: nothing but the two answers — `RSVP | Interested`,
+ * one row on one plate.
+ *
+ * The caption, the guest's status chip and the pass link are not repeated here:
+ * the inline RSVP card above draws all three (`RsvpPanel`), and stacking them
+ * into a pill made the bar as tall as a card again. A guest who needs the words
+ * reads them in the card; the bar is the thumb's shortcut to the answer.
+ */
 export function RsvpMobileBar(props: PanelProps) {
-  const { draft, rsvpAccess, newPass, canRsvp, chosen, onSelect, guestQuery } = props;
-  const pass = newPass ? passHref(newPass) : "";
+  const { draft, canRsvp, chosen, onSelect } = props;
 
   return (
     <RsvpBar>
-      <Notices {...props} />
-
       {canRsvp ? (
-        <>
-          <RsvpPrompt rsvpAccess={rsvpAccess} compact />
-
-          <RsvpPills draft={draft} chosen={chosen} onSelect={onSelect} />
-        </>
+        <RsvpActions draft={draft} chosen={chosen} onSelect={onSelect} />
       ) : (
-        <p className="ev-muted py-1 text-center text-xs">{LOCKED}</p>
-      )}
-
-      {pass && (
-        <p className="pt-1.5 text-center">
-          <a
-            href={pass}
-            className="ev-muted text-xs font-semibold underline underline-offset-4"
-          >
-            View my pass
-            {guestQuery.guest ? ` · ${guestQuery.guest.name}` : ""}
-          </a>
-        </p>
+        <p className="ev-muted px-3 py-2 text-center text-xs">{LOCKED}</p>
       )}
     </RsvpBar>
   );

@@ -49,13 +49,13 @@ export default function FloatingBar({
   label?: string;
   className?: string;
   /** `surface` is the neutral skin; `ink` is the inverted one used over art. */
-  tone?: "surface" | "ink";
+  tone?: "surface" | "ink" | "solid";
   /**
    * `pill` is one line (a confirmation, a name). `panel` is a short stack — a
    * caption over controls, or a tray — and takes the sheet radius and a wider
    * cap so it can hold the invitation's pills and the memory thumbnails.
    */
-  shape?: "pill" | "panel";
+  shape?: "pill" | "bar" | "panel";
   /**
    * Make the bar a live region. A check-in confirmation has to be *spoken* when
    * it appears — the two door screens relied on `role="status"` for that, so the
@@ -67,10 +67,24 @@ export default function FloatingBar({
     surface:
       "border-border bg-background/95 text-foreground shadow-sheet backdrop-blur-xl",
     ink: "border-transparent bg-foreground text-background shadow-sheet",
+    /**
+     * The `surface` skin with the glass taken out: opaque, no blur. For a bar
+     * that floats over somebody else's artwork — the invitation's RSVP bar —
+     * where a translucent plate would let a poster show through the words. It
+     * reads `--background` at full strength, which inside `.ev-invert` is the
+     * event theme's own ink.
+     */
+    solid: "border-transparent bg-background text-foreground shadow-sheet",
   } as const;
 
   const shapes = {
     pill: "max-w-[min(100%,32rem)] items-center gap-3 rounded-full px-3 py-2",
+    /**
+     * The RSVP plate: one row of two actions. Narrower and tighter than the
+     * other pills on purpose — it is a control under a thumb, not a notice, so
+     * it sits in the middle of the screen instead of running across it.
+     */
+    bar: "max-w-[min(100%,20rem)] items-center rounded-full p-1.5",
     panel: "max-w-[min(100%,48rem)] flex-col gap-3 rounded-sheet p-4",
   } as const;
 

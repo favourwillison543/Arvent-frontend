@@ -21,7 +21,7 @@ export function GateSection() {
             strokeLinejoin="round"
           />
         </svg>
-        <h3 className="mt-4 font-display text-2xl font-bold">
+        <h3 className="mt-4 font-display text-xl font-bold">
           A calmer check-in
         </h3>
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">

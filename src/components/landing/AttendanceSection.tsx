@@ -10,6 +10,8 @@ import {
 import Container from "@/components/ui/Container";
 import { useInView } from "@/hooks/useInView";
 
+import { SECTION_HEADING } from "./type";
+
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 /* The seat chart is a drawing, so its geometry is in brackets: seat backs and
@@ -221,7 +223,7 @@ export default function Attendance() {
       <Container>
         <div className="relative z-10 grid items-center gap-12 lg:grid-cols-12 lg:gap-14">
           <div className="min-w-0 lg:col-span-6">
-            <h2 className="max-w-md font-display text-[clamp(2.2rem,5vw,3.05rem)] font-bold leading-[1.02] tracking-[-0.035em]">
+            <h2 className={`max-w-md ${SECTION_HEADING}`}>
               An invitation is more than an{" "}
               <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
                 RSVP.

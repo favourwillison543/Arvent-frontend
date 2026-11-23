@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import Container from "@/components/ui/Container";
 
+import { PAGE_HEADING } from "./type";
+
 /**
  * The shared frame for the standalone marketing pages — contact, waitlist, terms
  * and privacy. One hero rhythm and one reading column, so they read as siblings
@@ -33,7 +35,7 @@ export default function PageShell({
             </p>
           )}
 
-          <h1 className="mt-3 font-display text-[clamp(2.2rem,5.4vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.035em] text-foreground">
+          <h1 className={`mt-3 ${PAGE_HEADING} text-foreground`}>
             {title}
             {accent && (
               <>

@@ -1,4 +1,3 @@
-import Attendance from "./AttendanceSection";
 import BrowseEvents from "./BrowseEvents";
 import CTA from "./CTA";
 import EventTypes from "./EventTypes";

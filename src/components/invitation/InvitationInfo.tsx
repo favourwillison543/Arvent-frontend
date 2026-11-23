@@ -14,16 +14,11 @@ export function InvitationHeader() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    /* The same column as the hero below, so the actions and the title line up on
-       the same x. The box is only as tall as the buttons plus a top rhythm — it
-       used to be `h-14 ... pb-18`, which put the invitation's title 168px down
-       the page while the same title sat 56px down on `/create`. */
     <header
       className={`${EVENT_BODY} relative z-40 flex items-center justify-end gap-2 pt-5 pb-2 sm:pt-6`}
     >
       {/* The sidebar carries these actions from `lg` up, so the header only
-          speaks on phones. It still occupies its box on desktop, because the
-          surface below is spaced against it. */}
+          speaks on phones. */}
       <div className="flex items-center gap-2 lg:hidden">
         {isLoading ? null : isAuthenticated ? (
           <Button href="/create" size="sm">
@@ -48,106 +43,64 @@ export function InvitationTitle({ draft }: { draft: EventDraft }) {
   const font = fonts.find((f) => f.id === draft.fontId) ?? fonts[0];
 
   return (
-    <h1
-      className={`break-words text-left ${EVENT_TITLE} ${font.className}`}
-    >
+    <h1 className={`break-words text-left ${EVENT_TITLE} ${font.className}`}>
       {draft.title}
     </h1>
   );
 }
 
 type MetaProps = {
-  draft: EventDraft;
   typeLabel: string;
-  /** "Open RSVP" / "Approval needed" / "Invite only" — the page knows the real rule. */
-  rsvpLabel?: string;
   copied: boolean;
   onCopy: () => void;
   onRemind: () => void;
 };
 
+/* Event type as plain muted text (no chip), then the two actions.
+   No "Public" or "Open RSVP" labels. */
 export function InvitationMeta({
-  draft,
   typeLabel,
-  rsvpLabel,
   copied,
   onCopy,
   onRemind,
 }: MetaProps) {
-  /*
-   * Only facts the event actually carries. This row used to print the bare last
-   * segment of the IANA zone ("Lagos") beside "Public" and the event type, which
-   * read as three unrelated words; the zone now lives next to the times in the
-   * date tile, and the RSVP rule — the thing a guest needs to know before
-   * answering — took its place.
-   */
-  const chips = [
-    typeLabel,
-    draft.visibility === "public" ? "Public" : "Private",
-    rsvpLabel || (draft.requireApproval ? "Approval needed" : "Open RSVP"),
-  ].filter(Boolean);
-
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap justify-start gap-1.5">
-        {chips.map((chip) => (
-          <span key={chip} className="ev-chip">
-            {chip}
-          </span>
-        ))}
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      {typeLabel && <span className="ev-muted pr-1 text-sm">{typeLabel}</span>}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={onRemind}>
-          <span className="inline-flex items-center gap-2">
-            <RsvpIcon name="clock" size={16} />
-            Remind me
-          </span>
-        </Button>
+      <Button type="button" variant="outline" size="sm" onClick={onRemind}>
+        <span className="inline-flex items-center gap-2">
+          <RsvpIcon name="clock" size={16} />
+          Remind me
+        </span>
+      </Button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onCopy}
-          aria-label={copied ? "Link copied" : "Copy invitation link"}
-        >
-          <span className="inline-flex items-center gap-2">
-            {copied ? <RsvpIcon name="check" size={16} /> : <LinkIcon size={16} />}
-            {copied ? "Copied" : "Copy link"}
-          </span>
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onCopy}
+        aria-label={copied ? "Link copied" : "Copy invitation link"}
+      >
+        <span className="inline-flex items-center gap-2">
+          {copied ? <RsvpIcon name="check" size={16} /> : <LinkIcon size={16} />}
+          {copied ? "Copied" : "Copy link"}
+        </span>
+      </Button>
     </div>
   );
 }
 
-/**
- * Who is hosting. It sits above the poster on every surface, so the reader
- * knows whose event this is before the artwork.
- */
+/* Who is hosting: text only, no round avatar. */
 export function InvitationHost({ hostName }: { hostName: string }) {
   return (
-    <div className="flex items-center justify-start gap-3">
-      <span
-        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold"
-        style={{ background: "var(--ev-surface2)" }}
-      >
-        {hostName.trim().slice(0, 1).toUpperCase() || "H"}
-      </span>
-      <p className="min-w-0 truncate text-sm">
-        <span className="ev-muted">Hosted by </span>
-        <span className="font-semibold">{hostName}</span>
-      </p>
-    </div>
+    <p className="min-w-0 truncate text-left text-sm">
+      <span className="ev-muted">Hosted by </span>
+      <span className="font-semibold">{hostName}</span>
+    </p>
   );
 }
 
-/**
- * The description, under the poster. Long copy is clamped to four lines with a
- * Read more toggle, so a wall of text can't push the date and venue cards off
- * the screen.
- */
 export function InvitationDescription({ description }: { description: string }) {
   const [expanded, setExpanded] = useState(false);
   const text = description.trim();
@@ -180,13 +133,6 @@ export function InvitationDescription({ description }: { description: string }) 
   );
 }
 
-/**
- * The house rules — capacity, plus-ones, approval, dress code.
- *
- * They used to be a bulleted list of six 13px lines in the same column as the
- * tiles, which read as a third card of leftovers. One wrapped line with a
- * middot between the facts says the same thing in the height of a caption.
- */
 export function InvitationAbout({ facts }: { facts: string[] }) {
   if (!facts.length) return null;
 

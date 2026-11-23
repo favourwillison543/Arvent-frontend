@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 
 import HeroBackdrop from "./HeroBackdrop";
+import { HERO_TITLE } from "./type";
 
 const eventTypes = [
   "Birthdays",
@@ -24,7 +25,7 @@ export default function Hero() {
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <h1
-            className="mt-2 font-display text-[clamp(2.6rem,6.4vw,4.9rem)] font-bold leading-[1.02] tracking-[-0.035em] text-foreground"
+            className={`mt-2 ${HERO_TITLE} text-foreground`}
             aria-label="Invitations that know who's actually coming."
           >
             <span className="block overflow-hidden pb-[0.08em]">
