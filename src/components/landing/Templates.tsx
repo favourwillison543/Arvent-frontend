@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Container from "@/components/ui/Container";
 import { useInView } from "@/hooks/useInView";
 
+import { SECTION_HEADING } from "./type";
+
 /* The template carousel is a picture of a poster on a phone: `20rem`, `15rem`
    and the `26rem` glow behind it are the mock's own scale — see the note in
    `AttendanceSection`. */
@@ -163,7 +165,7 @@ export default function Templates() {
     <section id="templates" ref={section} className="relative pb-24 pt-10">
       <Container className="mb-10">
         <div className="max-w-3xl">
-          <h2 className="font-display text-[clamp(2.2rem,5vw,3.05rem)] font-bold leading-[1.02] tracking-[-0.035em]">
+          <h2 className={SECTION_HEADING}>
             Start with a template.{" "}
             <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
               Make it yours.

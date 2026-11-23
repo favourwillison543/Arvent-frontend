@@ -7,7 +7,6 @@ import { ArrowLeft, Eye, Images, Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
 import MemoriesInvitationPreview from "./MemoriesInvitationPreview";
 import ThemeShell from "./ThemeShell";
-import RsvpCircles from "./RsvpCircles";
 import { toast } from "sonner";
 import { defaultDraft } from "./draft";
 import { fmtDate, fmtTime } from "./format";
@@ -19,7 +18,7 @@ import {
 } from "@/components/invitation/InvitationInfo";
 import InvitationSurface from "@/components/invitation/InvitationSurface";
 import InvitationTiles from "@/components/invitation/InvitationTiles";
-import { RsvpBar, RsvpPills, RsvpPrompt } from "@/components/invitation/RsvpBlock";
+import { RsvpActions, RsvpBar, RsvpPrompt } from "@/components/invitation/RsvpBlock";
 import { RsvpSheet } from "@/components/invitation/RsvpPanel";
 import ReminderDialog from "@/components/invitation/ReminderDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -309,9 +308,9 @@ export default function EventPreviewPage() {
             <>
               <RsvpPrompt rsvpAccess={rsvpAccess} />
 
-              <RsvpCircles
+              <RsvpActions
                 draft={draft}
-                big
+                size="lg"
                 chosen={previewChoice}
                 onSelect={chooseStatus}
               />
@@ -321,7 +320,6 @@ export default function EventPreviewPage() {
           host={<InvitationHost hostName={draft.host || "You"} />}
           meta={
             <InvitationMeta
-              draft={draft}
               typeLabel={typeLabel}
               copied={copied}
               onCopy={() => void copyPreviewLink()}
@@ -345,15 +343,9 @@ export default function EventPreviewPage() {
         />
 
         {/* Phones keep the RSVP within thumb reach: the invitation's own bar,
-            same height above the tab bar, same pill row. */}
+            same height above the tab bar, same two answers. */}
         <RsvpBar>
-          <RsvpPrompt rsvpAccess={rsvpAccess} compact />
-
-          <RsvpPills
-            draft={draft}
-            chosen={previewChoice}
-            onSelect={chooseStatus}
-          />
+          <RsvpActions draft={draft} chosen={previewChoice} onSelect={chooseStatus} />
         </RsvpBar>
 
         {/* The guest's own sheet, so the organizer can walk the RSVP — the

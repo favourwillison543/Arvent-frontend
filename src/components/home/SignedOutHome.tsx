@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "@/components/ui/Button";
+import { PAGE_TITLE } from "@/components/ui/Container";
 import { useAuthDialog } from "@/components/auth/AuthDialog";
 import { HOME_WRAP } from "@/components/event-dashboard/gutters";
 
@@ -27,7 +28,7 @@ export default function SignedOutHome() {
           bottom of its own, so the two never disagree about where the page ends. */}
       <div className={`${HOME_WRAP} relative z-10 pt-5 sm:pt-8 lg:pb-8`}>
         <section className="mt-10 max-w-2xl sm:mt-14">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <h1 className={`font-display font-bold tracking-tight text-foreground ${PAGE_TITLE}`}>
             Sign in to see your events.
           </h1>
 

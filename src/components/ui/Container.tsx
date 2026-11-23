@@ -64,23 +64,27 @@ export const READING_BODY = `mx-auto w-full max-w-5xl ${GUTTERS}`;
 export const EVENT_TOP = "pt-6 sm:pt-10 lg:pt-14";
 
 /**
- * The display title: 32 / 40 / 48, the biggest words on a screen.
+ * The display title: 24 / 28 / 32, the biggest words on a screen.
  *
  * Two things carry it. A screen's own name — "Settings", "The moments we made" —
  * through `PageHeader`, and an event's name, wherever that event is drawn. That
  * is one tier on purpose: stepping from an event's dashboard to a page inside it
  * shouldn't change the size of the largest type.
  *
- * The screens used to resolve it themselves: 32 / 42, 36 / 48, 36 / 48 / 60, a
- * flat 30, and a handful of `clamp()`s. Marketing heroes are the one deliberate
- * step above this and stay in their own components, where the extra drama is the
- * point.
+ * It was 32 / 40 / 48, which was a size up from the rest of the interface: on a
+ * laptop a page title stood 48px tall over 16px body copy, and the two tiers
+ * under it had to grow to keep their distance. The scale is now one step down
+ * across the board — 24 / 28 / 32 here, `SECTION_TITLE` and `CARD_TITLE` in
+ * `type.ts` a step each below it — so a page reads as one system instead of a
+ * headline with a page attached.
  *
  * The three sizes below are in brackets on purpose. They are the display tier:
  * they exist in this one string, so a screen can't reach for its own, and
- * `text-[2rem]` here is a decision rather than a stray value.
+ * `text-[2rem]` here is a decision rather than a stray value. Marketing heroes
+ * are the one deliberate exception and keep their own `clamp()` — the extra
+ * drama is the point there, not an accident of the scale.
  */
-export const PAGE_TITLE = "text-[2rem] leading-[1.06] sm:text-[2.5rem] lg:text-[3rem]";
+export const PAGE_TITLE = "text-[1.5rem] leading-[1.08] sm:text-[1.75rem] lg:text-[2rem]";
 
 /**
  * The event's title. A page title, because that is what it is; the alias keeps

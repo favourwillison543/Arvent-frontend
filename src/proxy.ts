@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import {
   parseSetCookie,
+  REFRESH_COOKIE,
   SESSION_COOKIE,
   verifySession,
   type SessionCheck,
@@ -230,16 +231,29 @@ export async function proxy(request: NextRequest) {
    * is one check before the first byte is sent, and a renewal it performs is
    * written onto the redirect.
    *
-   * Only a request that actually carries the access cookie is worth the check:
+   * Only a request that actually carries a session cookie is worth the check:
    * the appearance preference is a cookie too, so the mere presence of a
    * `cookie` header says nothing about a session. Everyone else passes
    * straight through — and so does a check that could not reach the API, since
    * the marketing page must never lock up behind an unreachable `/auth/me`.
-   * The client-side fallback still covers a browser that kept only the refresh
-   * cookie.
+   *
+   * Both cookies count, not just the access one. It lives 45 minutes while the
+   * refresh cookie outlives it, so a host who comes back after lunch carries
+   * `refresh_token` and nothing else: keying off `access_token` alone skipped
+   * the check for exactly the person most likely to open `/`, the marketing
+   * page painted, and only then did the client half (`SignedInRedirect`) renew
+   * the session and send them to `/home` — the flash this page is not supposed
+   * to have. `verifySession` renews from the refresh cookie here, so the
+   * redirect happens before the first byte. A visitor carries neither cookie,
+   * so the page still costs no API call.
    */
   if (pathname === "/") {
-    if (!request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
+    if (
+      !request.cookies.has(SESSION_COOKIE) &&
+      !request.cookies.has(REFRESH_COOKIE)
+    ) {
+      return NextResponse.next();
+    }
 
     const check = await verifySession(cookie);
 

@@ -57,7 +57,7 @@ export default function HomeSidebar() {
       <aside
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
-        className={`organizer-sidebar sticky top-0 z-40 hidden h-dvh shrink-0 flex-col items-stretch overflow-hidden border-r border-border bg-dashboard/85 p-2 pt-5 backdrop-blur-xl transition-[width] duration-200 ease-out lg:flex ${
+        className={`organizer-sidebar sticky top-0 z-40 hidden h-dvh shrink-0 flex-col items-stretch overflow-hidden border-r border-border bg-dashboard/45 p-2 pt-5 backdrop-blur-xl transition-[width] duration-200 ease-out lg:flex dark:bg-white/[0.04] ${
           expanded ? "w-60" : "w-16"
         }`}
       >
@@ -213,7 +213,7 @@ export default function HomeSidebar() {
       </aside>
 
       <nav
-        className="organizer-bottom-nav fixed inset-x-0 bottom-0 z-40 flex justify-around border-t border-border bg-dashboard/85 px-2 py-2 backdrop-blur-xl lg:hidden"
+        className="organizer-bottom-nav fixed inset-x-0 bottom-0 z-40 flex justify-around border-t border-border bg-dashboard/45 px-2 py-2 backdrop-blur-xl lg:hidden dark:bg-white/[0.04]"
         aria-label="App"
       >
         {[...items, mobileAccountItem].map((item) => (

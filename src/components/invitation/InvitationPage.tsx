@@ -27,11 +27,11 @@ import { eventToDraft } from "@/components/create-event/eventToDraft";
 
 import {
   InvitationHeader,
-  InvitationMeta,
   InvitationAbout,
   InvitationDescription,
   InvitationHost,
 } from "./InvitationInfo";
+import InvitationActions from "./InvitationActions";
 import InvitationSurface from "./InvitationSurface";
 import InvitationTiles from "./InvitationTiles";
 import InvitationMemories, { type MemoryPhoto } from "./InvitationMemories";
@@ -42,6 +42,8 @@ import { guestTokenFrom } from "./GuestPass";
 import { GuestPassDialog, type PassFacts } from "./GuestPassDialog";
 import { SkeletonPage } from "@/components/ui/Skeleton";
 
+type Person = { name?: string; firstName?: string; lastName?: string };
+
 type PublicMeta = {
   id?: string;
   type?: string;
@@ -49,8 +51,18 @@ type PublicMeta = {
   organizerId?: string;
   mapsUrl?: string | null;
   hostName?: string;
-  organizer?: { name?: string };
+  organizerName?: string;
+  host?: string | Person;
+  organizer?: Person;
+  creator?: Person;
+  owner?: Person;
 } | null;
+
+/* A person's display name from whichever fields the API happens to send. */
+const personName = (p?: Person) =>
+  p?.name?.trim() ||
+  [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim() ||
+  "";
 
 export function InvitationPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -89,6 +101,10 @@ export function InvitationPage() {
     memoriesQuery.error instanceof ApiError &&
     memoriesQuery.error.code === "MEMORIES_ACCESS_DENIED";
   const meta = (event ?? null) as PublicMeta;
+
+  // TEMPORARY: open the browser console and look for where the host's name is.
+  // Delete this line once the name shows up.
+  console.log("EVENT FROM API:", event);
 
   const draft = useMemo(
     () =>
@@ -139,7 +155,11 @@ export function InvitationPage() {
   const hostName =
     draft.host ||
     meta?.hostName ||
-    meta?.organizer?.name ||
+    meta?.organizerName ||
+    (typeof meta?.host === "string" ? meta.host : personName(meta?.host)) ||
+    personName(meta?.organizer) ||
+    personName(meta?.creator) ||
+    personName(meta?.owner) ||
     (isOwner ? displayName : "") ||
     "The host";
 
@@ -152,15 +172,6 @@ export function InvitationPage() {
 
   const typeLabel =
     draft.eventType.charAt(0).toUpperCase() + draft.eventType.slice(1);
-
-  /* The rule the guest has to know before answering. `managed` means the host
-     sends the invitations, so there is nothing here to answer. */
-  const rsvpLabel =
-    event.rsvpAccess === "managed"
-      ? "Invite only"
-      : event.rsvpAccess === "request"
-        ? "Approval needed"
-        : "Open RSVP";
 
   const times = withZone(
     [fmtTime(draft.startTime), fmtTime(draft.endTime)]
@@ -353,10 +364,8 @@ export function InvitationPage() {
         intro={<InvitationDescription description={draft.description} />}
         host={<InvitationHost hostName={hostName} />}
         meta={
-          <InvitationMeta
-            draft={draft}
+          <InvitationActions
             typeLabel={typeLabel}
-            rsvpLabel={rsvpLabel}
             copied={copied}
             onCopy={() => void copyLink()}
             onRemind={() => setRemindOpen(true)}
@@ -372,9 +381,7 @@ export function InvitationPage() {
             mapsHref={mapsHref}
           />
         }
-        about={
-          <InvitationAbout facts={facts} />
-        }
+        about={<InvitationAbout facts={facts} />}
         extras={
           <>
             <InvitationMemories
@@ -385,6 +392,8 @@ export function InvitationPage() {
               photos={photos}
               total={photoTotal}
               loading={memoriesQuery.isLoading}
+              onRsvp={() => setSheetOpen(true)}
+              onRemind={() => setRemindOpen(true)}
             />
             <InvitationSimilar events={similar} />
           </>

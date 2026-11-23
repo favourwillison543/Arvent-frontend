@@ -282,6 +282,67 @@
   box-shadow: 0 20px 50px rgba(99, 72, 48, .07);
 }
 
+/* ---- The inverted surface -------------------------------------------------
+   The phone RSVP bar is the one filled shape a guest meets on an invitation,
+   and it has to survive whatever palette the host picked. So it is drawn in the
+   theme's own ink with everything on it in the theme's inverse: a cream
+   invitation gets a near-black bar with cream labels, a dark invitation gets a
+   cream bar with near-black labels. Same rule as `.ev-accent` on the date tile —
+   the inverse of the page, never a brand colour — applied to the control a
+   thumb has to find without looking.
+
+   Two classes, on two elements, because a custom property cannot read the value
+   it is about to overwrite: `--ink: var(--inv)` next to `--inv: var(--ink)` is a
+   substitution cycle and both sides go invalid. `ev-invert-scope` snapshots the
+   pair first (it declares neither), and the surface below it swaps them.
+
+   The washed tokens are swapped too — `--soft`, `--line`, `--ev-surface`, and
+   the aliases Tailwind reads (`--foreground`, `--background`, `--muted`,
+   `--surface`). One declaration, and every ordinary thing that lands inside the
+   bar comes out inverted with it: a `bg-muted` notice, an app `Button`, a pill.
+   Nothing inside has to know it is sitting on ink. */
+.ev-invert-scope {
+  --ev-invert-ink: var(--ink);
+  --ev-invert-inv: var(--inv);
+}
+
+.ev-invert {
+  --ink: var(--ev-invert-inv);
+  --inv: var(--ev-invert-ink);
+  --foreground: var(--ev-invert-inv);
+  --background: var(--ev-invert-ink);
+  --soft: color-mix(in srgb, var(--ev-invert-inv) 72%, transparent);
+  --faint: color-mix(in srgb, var(--ev-invert-inv) 50%, transparent);
+  --muted-foreground: var(--soft);
+  --line: color-mix(in srgb, var(--ev-invert-inv) 18%, transparent);
+  --border: var(--line);
+  --ev-surface: color-mix(in srgb, var(--ev-invert-inv) 10%, transparent);
+  --ev-surface2: color-mix(in srgb, var(--ev-invert-inv) 18%, transparent);
+  --surface: var(--ev-surface);
+  --muted: var(--ev-surface2);
+}
+
+/* The RSVP plate's fill, in both themes and on both screens.
+   The token it must read is the invitation's *own* ink: off-white on a dark
+   theme, near-black on a light one — light plate under dark artwork, dark plate
+   under light artwork, the same way round everywhere.
+   Inside the floating bar the element also carries `ev-invert`, which has
+   already swapped `--ink` for `--inv`; reading `--ink` there would give a black
+   plate on a dark theme while the desktop card (outside the scope, where `--ink`
+   is still the ink) stayed off-white. So it reads `--ev-invert-ink` — the
+   snapshot `ev-invert-scope` takes *before* the swap — and falls back to `--ink`
+   on the desktop, where no scope exists. One rule, one colour per theme.
+   Darkened a little top to bottom, and linearly: a flat inverse read as a white
+   sticker, and at 48px tall a gradient is only allowed to be a gradient. */
+.ev-plate {
+  --plate-ink: var(--ev-invert-ink, var(--ink));
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--plate-ink) 94%, #000),
+    color-mix(in srgb, var(--plate-ink) 86%, #000)
+  );
+}
+
 .ev-input {
   background: transparent;
   outline: none;
