@@ -1,19 +1,17 @@
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 
-import { fmtTime } from "@/components/create-event/format";
 import { fetchEventPreview } from "@/lib/seo/eventPreview";
-import { passDate } from "@/lib/utils/pass";
 
 /* The picture a shared invitation link shows in a chat.
  *
- * It is the invitation's own material — the host's poster if there is one, the
- * event's colours if the theme set any, the same day and venue line a guest
- * reads — at the 1200×630 size the social cards ask for. No guest, no counts,
- * no capacity: anything here was already on the public invitation.
+ * Deliberately simple: the host's poster, the event name and an RSVP button.
+ * The date, venue and everything else wait on the invitation itself, which
+ * opens when the link is tapped. 1200×630, the size social cards ask for.
  */
 
 export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const contentType = "image/jpeg";
 export const alt = "An invitation on Arvent";
 
 const CREAM = "#f2efe6";
@@ -32,7 +30,70 @@ function clamp(text: string, limit: number) {
   return flat.length <= limit ? flat : `${flat.slice(0, limit - 1).trimEnd()}…`;
 }
 
-export default async function Image({
+/**
+ * Load the poster ourselves so a slow, missing or unsupported image (WebP,
+ * AVIF) falls back to the plain card instead of breaking the whole preview.
+ */
+async function safePoster(url: unknown) {
+  if (typeof url !== "string" || !/^https?:\/\//.test(url)) return null;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const type = res.headers.get("content-type") ?? "";
+
+    if (!res.ok || !/image\/(png|jpe?g|gif)/.test(type)) return null;
+
+    const bytes = Buffer.from(await res.arrayBuffer()).toString("base64");
+
+    return `data:${type.split(";")[0]};base64,${bytes}`;
+  } catch {
+    return null;
+  }
+}
+
+/* WhatsApp drops the picture from a link preview when the file is heavy (about
+ * 300 KB is the usual ceiling), and a photo card saved as PNG easily passes
+ * 1 MB. So the card is drawn as before, then squeezed to a JPEG under the limit.
+ */
+const MAX_BYTES = 250 * 1024;
+const QUALITIES = [80, 68, 55];
+
+// Events can be edited, so the card is cached for an hour, not for a year.
+const CACHE = "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400";
+
+async function toJpeg(card: ImageResponse) {
+  const png = Buffer.from(await card.arrayBuffer());
+
+  try {
+    for (const quality of QUALITIES) {
+      const jpeg = await sharp(png)
+        .flatten({ background: INK })
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer();
+
+      if (jpeg.length <= MAX_BYTES || quality === QUALITIES[QUALITIES.length - 1]) {
+        return new Response(new Uint8Array(jpeg), {
+          headers: { "Content-Type": "image/jpeg", "Cache-Control": CACHE },
+        });
+      }
+    }
+  } catch {
+    // Compression failed: a heavy card still beats no card.
+  }
+
+  return new Response(new Uint8Array(png), {
+    headers: { "Content-Type": "image/png", "Cache-Control": CACHE },
+  });
+}
+
+export default async function Image(props: {
+  params: Promise<{ slug: string }>;
+}) {
+  return toJpeg(await render(props));
+}
+
+/** Everything the card draws; `Image` above turns it into a small JPEG. */
+async function render({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -63,20 +124,12 @@ export default async function Image({
     );
   }
 
-  const poster =
-    typeof event.imageUrl === "string" && /^https?:\/\//.test(event.imageUrl)
-      ? event.imageUrl
-      : null;
+  const poster = await safePoster(event.imageUrl);
 
   const colours = event.eventColors ?? {};
   const ground = poster ? INK : colour(colours.background, CREAM);
   const ink = poster ? "#ffffff" : colour(colours.text, INK);
   const accent = colour(colours.accent, "#dcf91c");
-
-  const when = passDate(event.date);
-  const time = event.programStartTime ? fmtTime(event.programStartTime) : "";
-  const where = [event.venueName, event.location].filter(Boolean).join(", ");
-  const facts = [when, time].filter(Boolean).join(" · ");
 
   return new ImageResponse(
     (
@@ -84,7 +137,7 @@ export default async function Image({
         style={{
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           width: "100%",
           height: "100%",
           background: ground,
@@ -103,133 +156,78 @@ export default async function Image({
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              opacity: 0.85,
             }}
           />
         ) : null}
 
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: poster
-              ? "linear-gradient(0deg, rgba(24,24,27,0.94) 0%, rgba(24,24,27,0.45) 55%, rgba(24,24,27,0.18) 100%)"
-              : "transparent",
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "56px 64px 0",
-            color: ink,
-          }}
-        >
+        {/* A soft fade at the bottom so the title reads over any poster. */}
+        {poster ? (
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 800,
-              letterSpacing: 8,
-              textTransform: "uppercase",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              background:
+                "linear-gradient(0deg, rgba(24,24,27,0.85) 0%, rgba(24,24,27,0.35) 40%, rgba(24,24,27,0) 70%)",
             }}
-          >
-            Arvent
-          </div>
-          {event.status === "cancelled" ? (
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                padding: "10px 20px",
-                borderRadius: 999,
-                border: `2px solid ${ink}`,
-              }}
-            >
-              Cancelled
-            </div>
-          ) : null}
-        </div>
+          />
+        ) : null}
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            padding: "0 64px",
-            color: ink,
-          }}
-        >
+        {event.status === "cancelled" ? (
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              fontSize: 22,
+              position: "absolute",
+              top: 48,
+              right: 64,
+              fontSize: 20,
               fontWeight: 700,
-              letterSpacing: 4,
+              letterSpacing: 2,
               textTransform: "uppercase",
-              opacity: 0.75,
+              padding: "10px 20px",
+              borderRadius: 999,
+              border: `2px solid ${ink}`,
+              color: ink,
             }}
           >
-            <div
-              style={{
-                width: 44,
-                height: 8,
-                borderRadius: 999,
-                background: accent,
-              }}
-            />
-            You’re invited
+            Cancelled
           </div>
+        ) : null}
 
-          <div
-            style={{
-              marginTop: 18,
-              fontSize: event.name.length > 34 ? 62 : 78,
-              fontWeight: 800,
-              lineHeight: 1.06,
-              letterSpacing: -1.5,
-              maxWidth: 940,
-            }}
-          >
-            {clamp(event.name, 70)}
-          </div>
-        </div>
-
+        {/* Bottom padding keeps the title clear of X's own title badge. */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 40,
-            padding: "0 64px 60px",
+            padding: "0 64px 96px",
             color: ink,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", maxWidth: 700 }}>
-            <div style={{ fontSize: 30, fontWeight: 700 }}>{facts}</div>
-            {where ? (
-              <div style={{ fontSize: 24, marginTop: 8, opacity: 0.8 }}>
-                {clamp(where, 90)}
-              </div>
-            ) : null}
+          <div
+            style={{
+              display: "flex",
+              fontSize: event.name.length > 34 ? 62 : 78,
+              fontWeight: 800,
+              lineHeight: 1.06,
+              letterSpacing: -1.5,
+              maxWidth: 840,
+            }}
+          >
+            {clamp(event.name, 70)}
           </div>
 
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              padding: "12px 24px",
+              padding: "14px 30px",
               borderRadius: 999,
               background: accent,
               color: INK,
-              fontSize: 22,
+              fontSize: 26,
               fontWeight: 700,
             }}
           >

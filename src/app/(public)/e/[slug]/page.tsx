@@ -19,6 +19,8 @@ export default function Page() {
   );
 }
 
+const FALLBACK_DESCRIPTION = "You’re invited. Open the link to RSVP.";
+
 /** Long descriptions are for the page; a share card gets one sentence. */
 function excerpt(text: string, limit = 160) {
   const flat = text.replace(/\s+/g, " ").trim();
@@ -47,9 +49,12 @@ export async function generateMetadata({
   const when = passDate(event.date);
   const where = [event.venueName, event.location].filter(Boolean).join(", ");
 
+  // "Sat, 28 Nov 2026 · The Garden, Lekki — a line from the host". Any part can
+  // be missing, and an invitation with nothing to say still gets a sentence.
+  const facts = [when, where].filter(Boolean).join(" · ");
+  const note = event.description ? excerpt(event.description) : "";
   const description =
-    [when, where].filter(Boolean).join(" · ") +
-    (event.description ? ` — ${excerpt(event.description)}` : "");
+    [facts, note].filter(Boolean).join(" — ") || FALLBACK_DESCRIPTION;
 
   // A private invitation is shareable but not findable. The tags are the same
   // for both: the share card is exactly what the host sends.
@@ -64,10 +69,9 @@ export async function generateMetadata({
       ? { index: true, follow: true }
       : { index: false, follow: false },
     // `og:image` / `twitter:image` are deliberately not set here: the
-    // `opengraph-image.tsx` file next to this page supplies them. Next hashes the
-    // image route (`/e/<slug>/opengraph-image-<build hash>?<hash>`) so a card is
-    // re-fetched when the poster or the renderer changes, and a hand-built
-    // `/e/<slug>/opengraph-image` URL answers 404 — no card, just a bare link.
+    // `opengraph-image.tsx` file next to this page supplies them (a compressed
+    // JPEG, so WhatsApp keeps it). Next builds the image URL itself, so a
+    // hand-written `/e/<slug>/opengraph-image` link answers 404.
     openGraph: {
       type: "website",
       url,

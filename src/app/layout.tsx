@@ -42,6 +42,15 @@ export const metadata: Metadata = {
   title: "Arvent",
   description:
     "Create invitations for parties, birthdays, weddings, and gatherings, manage RSVPs, and know who actually shows up.",
+  // Pages that do not set their own share card fall back to this one.
+  openGraph: {
+    type: "website",
+    siteName: "Arvent",
+    title: "Arvent",
+    description:
+      "Create invitations, manage RSVPs, and know who actually shows up.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({

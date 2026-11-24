@@ -1,3 +1,4 @@
+
 import type { CSSProperties } from "react";
 
 import Button from "@/components/ui/Button";
@@ -23,17 +24,17 @@ export default function Hero() {
       <HeroBackdrop />
 
       <Container>
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="mx-auto max-w-4xl text-center">
           <h1
-            className={`mt-2 ${HERO_TITLE} text-foreground`}
-            aria-label="Invitations that know who's actually coming."
+            className={`mt-2 text-[2.5rem] leading-[1.08] sm:text-[3.5rem] lg:text-[4.5rem] ${HERO_TITLE} text-foreground`}
+            aria-label="Plan your event, bring everyone together, and keep the memories."
           >
             <span className="block overflow-hidden pb-[0.08em]">
               <span
                 className="word-up block"
                 style={{ animationDelay: "0.05s" }}
               >
-                Invitations that
+                Plan your event,
               </span>
             </span>
 
@@ -42,26 +43,34 @@ export default function Hero() {
                 className="word-up block"
                 style={{ animationDelay: "0.17s" }}
               >
-                know who&apos;s actually{" "}
+                bring everyone together,
+              </span>
+            </span>
+
+            <span className="block overflow-hidden pb-[0.08em]">
+              <span
+                className="word-up block"
+                style={{ animationDelay: "0.29s" }}
+              >
+                and keep the{" "}
                 <span className="font-accent text-[1.1em] font-normal italic tracking-normal">
-                  coming.
+                  memories.
                 </span>
               </span>
             </span>
           </h1>
 
           <p
-            className="fade-up mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg"
-            style={{ "--d": "0.45s" } as CSSProperties}
+            className="fade-up mx-auto mt-2 max-w-2xl text-base text-muted-foreground sm:text-lg"
+            style={{ "--d": "0.55s" } as CSSProperties}
           >
-            Share one beautiful link. Guests RSVP without an account, and you
-            see who&apos;s confirmed, who changed plans, and who actually showed
-            up.
+             Create your event, invite guests, manage RSVPs and updates, and collect
+             everyone&apos;s photos in one shared album.
           </p>
 
           <div
             className="fade-up mt-8 flex flex-wrap items-center justify-center gap-3"
-            style={{ "--d": "0.6s" } as CSSProperties}
+            style={{ "--d": "0.7s" } as CSSProperties}
           >
             <Button href="/create" size="lg">
               Create your event
