@@ -26,7 +26,7 @@ export default function Hero() {
       <Container>
         <div className="mx-auto max-w-4xl text-center">
           <h1
-            className={`mt-2 text-[2.5rem] leading-[1.08] sm:text-[3.5rem] lg:text-[4.5rem] ${HERO_TITLE} text-foreground`}
+            className={`mt-2 text-[1rem] leading-[1.08] sm:text-[2.3rem] lg:text-[3.5rem] ${HERO_TITLE} text-foreground`}
             aria-label="Plan your event, bring everyone together, and keep the memories."
           >
             <span className="block overflow-hidden pb-[0.08em]">
